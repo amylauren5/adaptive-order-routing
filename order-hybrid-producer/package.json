@@ -1,0 +1,13 @@
+{
+  "type": "commonjs",
+  "dependencies": {
+    "chai": "^4.3.6",
+    "chai-as-promised": "^7.1.1",
+    "chart.js": "^4.4.9",
+    "chartjs-node-canvas": "^5.0.0",
+    "dockerode": "^4.0.6",
+    "pdf-lib": "^1.17.1",
+    "truffle": "^5.11.5",
+    "web3": "^4.15.0"
+  }
+}

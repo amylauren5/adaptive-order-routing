@@ -1,0 +1,9 @@
+{
+  "type": "commonjs",
+  "dependencies": {
+    "chai": "^4.3.6",
+    "chai-as-promised": "^7.1.1",
+    "truffle": "^5.11.5",
+    "web3": "^4.15.0"
+  }
+}
