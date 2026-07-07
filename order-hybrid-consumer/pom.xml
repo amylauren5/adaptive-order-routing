@@ -10,13 +10,13 @@
         <relativePath/>
     </parent>
 
-    <groupId>ict.um.pharmaceutical</groupId>
+    <groupId>ict.um.orders</groupId>
     <artifactId>consumer</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>Pharmaceutical Supply Chain</name>
-    <description>Case study application focusing on the Pharmaceutical Supply Chain domain</description>
+    <name>Order Adaptive Routing</name>
+    <description>Case study application focusing on the ecommerce domain</description>
 
     <properties>
         <axon.version>4.10.1</axon.version>

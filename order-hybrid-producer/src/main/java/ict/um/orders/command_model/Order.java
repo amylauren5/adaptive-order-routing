@@ -35,7 +35,8 @@ public class Order {
                 cmd.getItemCount(),
                 cmd.getTimestamp(),
                 cmd.getPriority(),
-                cmd.getSequenceNumber()
+                cmd.getSequenceNumber(),
+                cmd.getDataHash()
         ));
     }
 

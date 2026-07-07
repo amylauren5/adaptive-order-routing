@@ -1,6 +1,6 @@
 package ict.um.orders.services;
 
-import ict.um.orders.web3j_wrappers.OrderTrackingContract;
+import ict.um.orders.web3j_wrappers.OrderLifecycleContract;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,12 +25,13 @@ public class BlockchainReadService {
     private final Credentials credentials;
     private final String contractAddress;
 
-    private OrderTrackingContract orderTrackingContract;
+    private OrderLifecycleContract orderContract;
 
     @Autowired
-    public BlockchainReadService(@Value("${web3.provider}") String web3Provider,
-                                 @Value("${private.key}") String privateKey,
-                                 @Value("${contract.address}") String contractAddress) {
+    public BlockchainReadService(
+            @Value("${web3.provider}") String web3Provider,
+            @Value("${private.key}") String privateKey,
+            @Value("${contract.address}") String contractAddress) {
 
         this.web3j = Web3j.build(new HttpService(web3Provider));
         this.credentials = Credentials.create(privateKey);
@@ -40,30 +41,29 @@ public class BlockchainReadService {
     @PostConstruct
     public void initContract() {
         try {
-            this.orderTrackingContract = OrderTrackingContract.load(
-                    contractAddress, web3j, credentials, new DefaultGasProvider());
+            this.orderContract = OrderLifecycleContract.load(
+                    contractAddress,
+                    web3j,
+                    credentials,
+                    new DefaultGasProvider()
+            );
         } catch (Exception e) {
-            throw new RuntimeException("Failed to initialize contract", e);
+            throw new RuntimeException("Failed to initialize OrderLifecycleContract", e);
         }
-    }
-
-    // --- READ ORDER FROM BLOCKCHAIN ---
-    public CompletableFuture<String> getOrder(String orderId) {
-        return orderTrackingContract.getOrder(orderId).sendAsync();
     }
 
     // --- READ ORDER HASH ---
     public CompletableFuture<String> getOrderHash(String orderId) {
-        return orderTrackingContract.getOrderHash(orderId).sendAsync();
+        return orderContract.call_getOrderHash(orderId).sendAsync();
     }
 
-    // --- READ ORDER STATE ---
-    public CompletableFuture<BigInteger> getOrderState(String orderId) {
-        return orderTrackingContract.getOrderState(orderId).sendAsync();
+    // --- READ LATEST STATE ---
+    public CompletableFuture<BigInteger> getLatestState(String orderId) {
+        return orderContract.call_getLatestState(orderId).sendAsync();
     }
 
-    // --- READ ORDER HISTORY ---
-    public CompletableFuture<List> getOrderHistory(String orderId) {
-        return orderTrackingContract.getOrderHistory(orderId).sendAsync();
+    // --- READ FULL STATE HISTORY ---
+    public CompletableFuture<List> getOrderStates(String orderId) {
+        return orderContract.call_getOrderStates(orderId).sendAsync();
     }
 }

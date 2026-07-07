@@ -1,6 +1,7 @@
 package ict.um.orders;
 
 import ict.um.orders.coreapi.commands.*;
+import ict.um.orders.services.HashingService;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.axonframework.commandhandling.gateway.CommandGateway;
@@ -13,9 +14,12 @@ import java.util.concurrent.TimeUnit;
 public class WorkloadGenerator {
 
     private final CommandGateway commandGateway;
+    private final HashingService hashingService;
 
-    public WorkloadGenerator(CommandGateway commandGateway) {
+    public WorkloadGenerator(CommandGateway commandGateway,
+                             HashingService hashingService) {
         this.commandGateway = commandGateway;
+        this.hashingService = hashingService;
     }
 
     @Scheduled(fixedRate = 5_000) // synthetic inter-arrival
@@ -25,23 +29,40 @@ public class WorkloadGenerator {
         String customerId = UUID.randomUUID().toString();
 
         int itemCount = 1 + (int)(Math.random() * 5);
-
         long now = System.currentTimeMillis();
 
-        // 1. Create order
-        commandGateway.send(new CreateOrderCommand(
+        // --- TEMP COMMAND FOR HASHING ---
+        CreateOrderCommand temp = new CreateOrderCommand(
                 orderId,
                 customerId,
                 OlistSampling.sampleCategory(),
                 OlistSampling.sampleOrderValue(),
                 itemCount,
                 now,
-                /* priority */ 1,
-                /* sequenceNumber */ 0
-        ));
+                1,      // priority
+                0,      // sequence number
+                ""      // placeholder hash
+        );
+
+        String dataHash = hashingService.computeInitialDataHash(temp);
+
+        // --- FINAL COMMAND WITH CORRECT HASH ---
+        CreateOrderCommand createCmd = new CreateOrderCommand(
+                orderId,
+                customerId,
+                temp.getCategory(),
+                temp.getOrderValue(),
+                itemCount,
+                now,
+                1,
+                0,
+                dataHash
+        );
+
+        // 1. Create order
+        commandGateway.send(createCmd);
 
         // --- POSSIBLE CANCELLATION ---
-        // Olist cancellation rate ≈ 10%
         if (Math.random() < 0.10) {
             scheduleCancellation(orderId);
             return; // stop lifecycle if cancelled

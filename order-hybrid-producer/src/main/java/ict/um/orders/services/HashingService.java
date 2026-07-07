@@ -29,28 +29,32 @@ public class HashingService {
 
     // --- HASH FOR CREATE ORDER ---
     public String computeInitialDataHash(CreateOrderCommand command) {
-        String data = command.getOrderId()
-                + command.getCustomerId()
-                + command.getCategory()
-                + command.getOrderValue()
-                + command.getItemCount()
-                + command.getTimestamp()
-                + command.getPriority()
-                + command.getSequenceNumber();
+
+        String data =
+                command.getOrderId() +
+                        command.getCustomerId() +
+                        command.getCategory() +
+                        command.getOrderValue() +
+                        command.getItemCount() +
+                        command.getTimestamp() +
+                        command.getPriority() +
+                        command.getSequenceNumber();
 
         return hashString(data);
     }
 
     // --- HASH FOR PROJECTOR RECONSTRUCTION ---
     public String reconstructDataHash(OrderSubmittedView view) {
-        String data = view.getOrderId()
-                + view.getCustomerId()
-                + view.getCategory()
-                + view.getOrderValue()
-                + view.getItemCount()
-                + view.getTimestamp()
-                + view.getPriority()
-                + view.getSequenceNumber();
+
+        String data =
+                view.getOrderId() +
+                        view.getCustomerId() +
+                        view.getCategory() +
+                        view.getOrderValue() +
+                        view.getItemCount() +
+                        view.getTimestamp() +
+                        view.getPriority() +
+                        view.getSequenceNumber();
 
         return hashString(data);
     }
