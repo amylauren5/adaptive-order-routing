@@ -1,14 +1,14 @@
 #!/bin/sh
 set -e
 
-if ! docker network inspect ict3914-final-year-project_rabbit-network > /dev/null 2>&1; then
+if ! docker network inspect ict3500-dissertation_rabbit-network > /dev/null 2>&1; then
   echo "Creating Docker network..."
-  docker network create ict3914-final-year-project_rabbit-network
+  docker network create ict3500-dissertation_rabbit-network
 else
   echo "Network already exists. Deleting it..."
-  docker network rm ict3914-final-year-project_rabbit-network
+  docker network rm ict3500-dissertation_rabbit-network
   echo "Recreating Docker network..."
-  docker network create ict3914-final-year-project_rabbit-network
+  docker network create ict3500-dissertation_rabbit-network
 fi
 
 

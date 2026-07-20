@@ -28,7 +28,9 @@ public class WorkloadGenerator {
         String orderId = UUID.randomUUID().toString();
         String customerId = UUID.randomUUID().toString();
 
-        int itemCount = 1 + (int)(Math.random() * 5);
+        // deterministic item count
+        int itemCount = 1 + OlistSampling.random().nextInt(5);
+
         long now = System.currentTimeMillis();
 
         // --- TEMP COMMAND FOR HASHING ---
@@ -62,8 +64,8 @@ public class WorkloadGenerator {
         // 1. Create order
         commandGateway.send(createCmd);
 
-        // --- POSSIBLE CANCELLATION ---
-        if (Math.random() < 0.10) {
+        // --- POSSIBLE CANCELLATION (deterministic) ---
+        if (OlistSampling.random().nextDouble() < 0.10) {
             scheduleCancellation(orderId);
             return; // stop lifecycle if cancelled
         }
@@ -127,6 +129,8 @@ public class WorkloadGenerator {
                 "inventory_unavailable",
                 "fraud_suspected"
         };
-        return reasons[(int) (Math.random() * reasons.length)];
+
+        // deterministic cancellation reason
+        return reasons[OlistSampling.random().nextInt(reasons.length)];
     }
 }

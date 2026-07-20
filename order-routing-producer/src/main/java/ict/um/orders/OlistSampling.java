@@ -5,7 +5,18 @@ import java.util.Random;
 
 public class OlistSampling {
 
-    private static final Random random = new Random();
+    // Single PRNG for reproducible sampling
+    private static Random random = new Random(42);
+
+    // Allow experiments to set a seed explicitly
+    public static void setSeed(long seed) {
+        random = new Random(seed);
+    }
+
+    // Expose the PRNG for workload generator
+    public static Random random() {
+        return random;
+    }
 
     // Inter-arrival times (seconds → ms)
     private static final List<Long> INTER_ARRIVAL = List.of(
@@ -27,7 +38,7 @@ public class OlistSampling {
             354_235_500L, 613_420_000L, 1_039_315_500L
     );
 
-    // Order value (just return double)
+    // Order value
     private static final List<Double> ORDER_VALUE = List.of(
             62.01, 105.29, 176.97
     );
@@ -67,4 +78,3 @@ public class OlistSampling {
         return sample(CATEGORIES);
     }
 }
-

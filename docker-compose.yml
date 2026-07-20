@@ -1,11 +1,11 @@
 networks:
-  ict3914-final-year-project_rabbit-network:
+  ict3500-dissertation_rabbit-network:
     external: true
 
 services:
   producer-app:
     build:
-      context: ./pharma-hybrid-rabbitmq-producer
+      context: ./order-routing-producer
       dockerfile: Dockerfile
     container_name: producer-app
     ports:
@@ -13,20 +13,20 @@ services:
     env_file:
       - .env
     networks:
-      - ict3914-final-year-project_rabbit-network
+      - ict3500-dissertation_rabbit-network
     depends_on:
       axon-server:
         condition: service_healthy
 
   consumer-app:
     build:
-      context: ./pharma-hybrid-rabbitmq-consumer
+      context: ./order-routing-consumer
       dockerfile: Dockerfile
     container_name: consumer-app
     env_file:
       - .env
     networks:
-      - ict3914-final-year-project_rabbit-network
+      - ict3500-dissertation_rabbit-network
     restart: always
     depends_on:
       axon-server:
@@ -39,7 +39,7 @@ services:
       - "8024:8024"
       - "8124:8124"
     networks:
-      - ict3914-final-year-project_rabbit-network
+      - ict3500-dissertation_rabbit-network
     restart: always
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8024"]
@@ -54,7 +54,7 @@ services:
       - "5672:5672"
       - "15672:15672"
     networks:
-      - ict3914-final-year-project_rabbit-network
+      - ict3500-dissertation_rabbit-network
     restart: always
 
   postgres:
@@ -68,7 +68,7 @@ services:
     ports:
       - "5432:5432"
     networks:
-      - ict3914-final-year-project_rabbit-network
+      - ict3500-dissertation_rabbit-network
 
 volumes:
   pgdata:
