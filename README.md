@@ -11,8 +11,8 @@ While the system is primarily designed to explore routing behaviour under dynami
 
 - **adaptive-order-routing/**  
   Contains the semi-decentralised application components and supporting scripts:
-  - **order-hybrid-producer**: Responsible for producing and sending messages. Combines centralised services (e.g., Axon Server) with decentralised blockchain components to enhance performance and scalability.  
-  - **order-hybrid-consumer**: Responsible for consuming and processing messages. Integrates centralised and decentralised systems to ensure efficient data handling and improved scalability.  
+  - **order-routing-producer**: Responsible for producing and sending messages. Combines centralised services (e.g., Axon Server) with decentralised blockchain components to enhance performance and scalability.  
+  - **order-routing-consumer**: Responsible for consuming and processing messages. Integrates centralised and decentralised systems to ensure efficient data handling and improved scalability.  
   - **scripts/**: Automation and utility scripts supporting development and testing workflows:
     - `extract-ganache.sh`: Extracts wallet addresses and private keys from the Ganache container and updates the `.env` file.  
     - `start.sh`: Starts containers and services using Docker Compose.  
@@ -37,7 +37,7 @@ While the system is primarily designed to explore routing behaviour under dynami
    - Extract Ganache wallet address and private key using `extract-ganache.sh`  
    - Launch all services with Docker Compose  
 
-Note: The Dockerfiles in `order-hybrid-producer` and `order-hybrid-consumer` require a JAR file. If needed, you can generate the JAR by running the following command in the respective project directory:
+Note: The Dockerfiles in `order-routing-producer` and `order-routing-consumer` require a JAR file. If needed, you can generate the JAR by running the following command in the respective project directory:
 
 ```bash
 mvn clean package
@@ -45,13 +45,9 @@ mvn clean package
 
 2. Wait until Axon Server is healthy, then open `http://localhost:8024` to complete the **single-node setup**.
 
-3. Once setup is complete, the **hybrid producer and consumer apps** will start automatically and connect to Axon Server.
+3. Once setup is complete, the **producer and consumer apps** will start automatically and connect to Axon Server.
 
-4. Test API endpoints with Postman using the collection and environment files in the `postman/` directory, reflecting the pharmaceutical supply chain scenario.
-
-5. To run automated tests, execute `baseline-test-run.js` and `chaos-test-run.js` in the `scripts/` directory. These scripts generate graphs in the `baseline-graph` and `chaos-graph` folders.
-
-6. When finished, run `./teardown.sh` to stop containers and clean up the Docker network.
+4. When finished, run `./teardown.sh` to stop containers and clean up the Docker network.
 
 ## License
 This project is licensed under the MIT License - see the LICENSE file for details.
