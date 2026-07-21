@@ -55,7 +55,7 @@ public class OrderCachedProjector {
                 evt.getTimestamp()
         );
         repository.save(view);
-        sendToBroker(evt, "orders.created.queue");
+        sendToBroker(evt, "priority.low");
     }
 
     @EventHandler
@@ -64,7 +64,7 @@ public class OrderCachedProjector {
         view.setStatus(OrderStatus.APPROVED.name());
         view.setLastEventTimestamp(evt.getTimestamp());
         repository.save(view);
-        sendToBroker(evt, "orders.approved.queue");
+        sendToBroker(evt, "priority.medium");
     }
 
     @EventHandler
@@ -73,7 +73,7 @@ public class OrderCachedProjector {
         view.setStatus(OrderStatus.DISPATCHED.name());
         view.setLastEventTimestamp(evt.getTimestamp());
         repository.save(view);
-        sendToBroker(evt, "orders.dispatched.queue");
+        sendToBroker(evt, "priority.medium");
     }
 
     @EventHandler
@@ -82,7 +82,7 @@ public class OrderCachedProjector {
         view.setStatus(OrderStatus.COMPLETED.name());
         view.setLastEventTimestamp(evt.getTimestamp());
         repository.save(view);
-        sendToBroker(evt, "orders.completed.queue");
+        sendToBroker(evt, "priority.high");
     }
 
     @EventHandler
@@ -91,7 +91,7 @@ public class OrderCachedProjector {
         view.setStatus(OrderStatus.CANCELLED.name());
         view.setLastEventTimestamp(evt.getTimestamp());
         repository.save(view);
-        sendToBroker(evt, "orders.cancelled.queue");
+        sendToBroker(evt, "priority.high");
     }
 
 }

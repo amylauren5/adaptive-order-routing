@@ -3,7 +3,7 @@ HELP.md
 /bin/
 !.mvn/wrapper/maven-wrapper.jar
 node_modules/
-.env
+../scripts/.env
 .venv
 
 ### STS ###

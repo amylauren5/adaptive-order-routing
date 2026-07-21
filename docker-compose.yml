@@ -11,7 +11,7 @@ services:
     ports:
       - "8080:8080"
     env_file:
-      - .env
+      - ./scripts/.env
     networks:
       - ict3500-dissertation_rabbit-network
     depends_on:
@@ -24,7 +24,7 @@ services:
       dockerfile: Dockerfile
     container_name: consumer-app
     env_file:
-      - .env
+      - ./scripts/.env
     networks:
       - ict3500-dissertation_rabbit-network
     restart: always
@@ -62,7 +62,7 @@ services:
     container_name: postgres-db
     restart: always
     env_file:
-      - .env
+      - ./scripts/.env
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:

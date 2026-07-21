@@ -1,10 +1,11 @@
 #!/bin/bash
 
+echo "Stopping and removing ganache container..."
 # Stop and remove ganache container
 docker stop ganache 2>/dev/null && docker rm ganache 2>/dev/null
 
 # Known Docker network name
-NETWORK_NAME="ict3914-final-year-project_rabbit-network"
+NETWORK_NAME="ict3500-dissertation_rabbit-network"
 
 echo "Inspecting network '$NETWORK_NAME' for attached containers..."
 

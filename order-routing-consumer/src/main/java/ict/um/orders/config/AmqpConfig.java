@@ -9,7 +9,7 @@ public class AmqpConfig {
 
     private static final String HIGH_PRIORITY_QUEUE = "priority.high";
     private static final String MEDIUM_PRIORITY_QUEUE = "priority.medium";
-    private static final String LOW_PRIORITY_QUEUE = "proiority.low";
+    private static final String LOW_PRIORITY_QUEUE = "priority.low";
 
 
     @Bean

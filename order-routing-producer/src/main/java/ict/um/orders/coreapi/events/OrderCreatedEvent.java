@@ -1,5 +1,8 @@
 package ict.um.orders.coreapi.events;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class OrderCreatedEvent {
 
     private final String orderId;
@@ -12,15 +15,17 @@ public class OrderCreatedEvent {
     private final int sequenceNumber;
     private final String dataHash;
 
-    public OrderCreatedEvent(String orderId,
-                             String customerId,
-                             String category,
-                             double orderValue,
-                             int itemCount,
-                             long timestamp,
-                             int priority,
-                             int sequenceNumber,
-                             String dataHash) {
+    @JsonCreator
+    public OrderCreatedEvent(
+            @JsonProperty("orderId") String orderId,
+            @JsonProperty("customerId") String customerId,
+            @JsonProperty("category") String category,
+            @JsonProperty("orderValue") double orderValue,
+            @JsonProperty("itemCount") int itemCount,
+            @JsonProperty("timestamp") long timestamp,
+            @JsonProperty("priority") int priority,
+            @JsonProperty("sequenceNumber") int sequenceNumber,
+            @JsonProperty("dataHash") String dataHash) {
         this.orderId = orderId;
         this.customerId = customerId;
         this.category = category;

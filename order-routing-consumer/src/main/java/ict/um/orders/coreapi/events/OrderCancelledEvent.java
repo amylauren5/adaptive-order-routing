@@ -1,5 +1,8 @@
 package ict.um.orders.coreapi.events;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class OrderCancelledEvent {
 
     private final String orderId;
@@ -7,10 +10,12 @@ public class OrderCancelledEvent {
     private final int sequenceNumber;
     private final String reason;
 
-    public OrderCancelledEvent(String orderId,
-                               long timestamp,
-                               int sequenceNumber,
-                               String reason) {
+    @JsonCreator
+    public OrderCancelledEvent(
+            @JsonProperty("orderId") String orderId,
+            @JsonProperty("timestamp") long timestamp,
+            @JsonProperty("sequenceNumber") int sequenceNumber,
+            @JsonProperty("reason") String reason) {
         this.orderId = orderId;
         this.timestamp = timestamp;
         this.sequenceNumber = sequenceNumber;

@@ -13,7 +13,7 @@ fi
 
 
 echo "Starting Ganache separately..."
-docker run -d --name ganache --network ict3914-final-year-project_rabbit-network -p 8545:8545 \
+docker run -d --name ganache --network ict3500-dissertation_rabbit-network -p 8545:8545 \
   trufflesuite/ganache-cli \
   --gasLimit 12000000 --accounts 10 --defaultBalanceEther 100
 
