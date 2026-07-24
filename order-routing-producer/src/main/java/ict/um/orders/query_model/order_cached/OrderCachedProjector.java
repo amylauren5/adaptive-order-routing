@@ -4,7 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import ict.um.orders.core_api.events.*;
 import ict.um.orders.core_api.enums.OrderStatus;
 import ict.um.orders.core_api.queries.GetSubmittedByOrderIdQuery;
-import ict.um.orders.ml.model.WorkloadPredictionModel;
+import ict.um.orders.services.AdaptiveRoutingService;
+import ml.dmlc.xgboost4j.java.XGBoostError;
 import org.axonframework.eventhandling.EventHandler;
 import org.axonframework.queryhandling.QueryHandler;
 import org.springframework.amqp.core.Message;
@@ -14,23 +15,25 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
+
 @Component
 public class OrderCachedProjector {
 
     private final OrderCachedViewRepository repository;
     private final RabbitTemplate rabbitTemplate;
     private final ObjectMapper objectMapper;
-    private final WorkloadPredictionModel predictionModel;
+    private final AdaptiveRoutingService adaptiveRoutingService;
 
     @Autowired
     public OrderCachedProjector(OrderCachedViewRepository repository,
                                 RabbitTemplate rabbitTemplate,
                                 ObjectMapper objectMapper,
-                                WorkloadPredictionModel predictionModel) {
+                                AdaptiveRoutingService adaptiveRoutingService) {
         this.repository = repository;
         this.rabbitTemplate = rabbitTemplate;
         this.objectMapper = objectMapper;
-        this.predictionModel = predictionModel;
+        this.adaptiveRoutingService = adaptiveRoutingService;
     }
 
     private void sendToBroker(Object event, String queue) {
@@ -51,7 +54,7 @@ public class OrderCachedProjector {
     // --- EVENT HANDLERS ---
 
     @EventHandler
-    public void on(OrderCreatedEvent evt) {
+    public void on(OrderCreatedEvent evt) throws XGBoostError, IOException {
         OrderCachedView view = new OrderCachedView(
                 evt.getOrderId(),
                 OrderStatus.CREATED.name(),
@@ -60,11 +63,16 @@ public class OrderCachedProjector {
                 evt.getItemCount(),
                 evt.getTimestamp()
         );
+
+        // Save to repository
         repository.save(view);
+
+        // Send event to broker normally
         sendToBroker(evt, "priority.low");
 
-        // ML example
-
+        // Send event to broker using ML-based router
+        //String queue = adaptiveRoutingService.route(evt);
+        //sendToBroker(evt, queue);
     }
 
     @EventHandler
@@ -72,8 +80,16 @@ public class OrderCachedProjector {
         OrderCachedView view = repository.findById(evt.getOrderId()).orElseThrow();
         view.setStatus(OrderStatus.APPROVED.name());
         view.setLastEventTimestamp(evt.getTimestamp());
+
+        // Save to repository
         repository.save(view);
+
+        // Send to broker normally
         sendToBroker(evt, "priority.medium");
+
+        // Send event to broker using ML-based router
+        //String queue = adaptiveRoutingService.route(evt);
+        //sendToBroker(evt, queue);
     }
 
     @EventHandler
@@ -81,8 +97,16 @@ public class OrderCachedProjector {
         OrderCachedView view = repository.findById(evt.getOrderId()).orElseThrow();
         view.setStatus(OrderStatus.DISPATCHED.name());
         view.setLastEventTimestamp(evt.getTimestamp());
+
+        // Save to repository
         repository.save(view);
+
+        // Send to broker normally
         sendToBroker(evt, "priority.medium");
+
+        // Send event to broker using ML-based router
+        //String queue = adaptiveRoutingService.route(evt);
+        //sendToBroker(evt, queue);
     }
 
     @EventHandler
@@ -90,8 +114,16 @@ public class OrderCachedProjector {
         OrderCachedView view = repository.findById(evt.getOrderId()).orElseThrow();
         view.setStatus(OrderStatus.COMPLETED.name());
         view.setLastEventTimestamp(evt.getTimestamp());
+
+        // Save to repository
         repository.save(view);
+
+        // Send to broker normally
         sendToBroker(evt, "priority.high");
+
+        // Send event to broker using ML-based router
+        //String queue = adaptiveRoutingService.route(evt);
+        //sendToBroker(evt, queue);
     }
 
     @EventHandler
@@ -99,8 +131,16 @@ public class OrderCachedProjector {
         OrderCachedView view = repository.findById(evt.getOrderId()).orElseThrow();
         view.setStatus(OrderStatus.CANCELLED.name());
         view.setLastEventTimestamp(evt.getTimestamp());
+
+        // Save to repository
         repository.save(view);
+
+        // Send to broker normally
         sendToBroker(evt, "priority.high");
+
+        // Send event to broker using ML-based router
+        //String queue = adaptiveRoutingService.route(evt);
+        //sendToBroker(evt, queue);
     }
 
     // --- QUERY HANDLER ---
