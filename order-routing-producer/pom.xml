@@ -129,6 +129,14 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- XGBoost inference -->
+        <!-- Source: https://mvnrepository.com/artifact/ml.dmlc/xgboost4j -->
+        <dependency>
+            <groupId>ml.dmlc</groupId>
+            <artifactId>xgboost4j_2.13</artifactId>
+            <version>3.3.0</version>
+        </dependency>
+
     </dependencies>
 
     <build>

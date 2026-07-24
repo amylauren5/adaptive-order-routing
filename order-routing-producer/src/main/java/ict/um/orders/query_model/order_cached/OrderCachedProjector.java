@@ -1,9 +1,10 @@
 package ict.um.orders.query_model.order_cached;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import ict.um.orders.coreapi.events.*;
-import ict.um.orders.coreapi.enums.OrderStatus;
-import ict.um.orders.coreapi.queries.GetSubmittedByOrderIdQuery;
+import ict.um.orders.core_api.events.*;
+import ict.um.orders.core_api.enums.OrderStatus;
+import ict.um.orders.core_api.queries.GetSubmittedByOrderIdQuery;
+import ict.um.orders.ml.model.WorkloadPredictionModel;
 import org.axonframework.eventhandling.EventHandler;
 import org.axonframework.queryhandling.QueryHandler;
 import org.springframework.amqp.core.Message;
@@ -19,14 +20,17 @@ public class OrderCachedProjector {
     private final OrderCachedViewRepository repository;
     private final RabbitTemplate rabbitTemplate;
     private final ObjectMapper objectMapper;
+    private final WorkloadPredictionModel predictionModel;
 
     @Autowired
     public OrderCachedProjector(OrderCachedViewRepository repository,
                                 RabbitTemplate rabbitTemplate,
-                                ObjectMapper objectMapper) {
+                                ObjectMapper objectMapper,
+                                WorkloadPredictionModel predictionModel) {
         this.repository = repository;
         this.rabbitTemplate = rabbitTemplate;
         this.objectMapper = objectMapper;
+        this.predictionModel = predictionModel;
     }
 
     private void sendToBroker(Object event, String queue) {
@@ -58,6 +62,9 @@ public class OrderCachedProjector {
         );
         repository.save(view);
         sendToBroker(evt, "priority.low");
+
+        // ML example
+
     }
 
     @EventHandler

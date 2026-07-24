@@ -1,8 +1,8 @@
 package ict.um.orders.command_model;
 
-import ict.um.orders.coreapi.commands.*;
-import ict.um.orders.coreapi.events.*;
-import ict.um.orders.coreapi.enums.OrderStatus;
+import ict.um.orders.core_api.commands.*;
+import ict.um.orders.core_api.events.*;
+import ict.um.orders.core_api.enums.OrderStatus;
 import org.axonframework.commandhandling.CommandHandler;
 import org.axonframework.eventsourcing.EventSourcingHandler;
 import org.axonframework.modelling.command.AggregateIdentifier;

@@ -1,6 +1,6 @@
 package ict.um.orders.services;
 
-import ict.um.orders.coreapi.commands.CreateOrderCommand;
+import ict.um.orders.core_api.commands.CreateOrderCommand;
 import ict.um.orders.query_model.order_submitted.OrderSubmittedView;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

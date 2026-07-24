@@ -1,6 +1,6 @@
 package ict.um.orders.user_interface;
 
-import ict.um.orders.coreapi.commands.*;
+import ict.um.orders.core_api.commands.*;
 import ict.um.orders.services.HashingService;
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.springframework.beans.factory.annotation.Autowired;

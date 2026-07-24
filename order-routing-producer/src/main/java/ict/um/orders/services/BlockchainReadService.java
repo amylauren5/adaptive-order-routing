@@ -1,6 +1,6 @@
 package ict.um.orders.services;
 
-import ict.um.orders.web3j_wrappers.OrderLifecycleContract;
+import ict.um.orders.web3j.OrderLifecycleContract;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

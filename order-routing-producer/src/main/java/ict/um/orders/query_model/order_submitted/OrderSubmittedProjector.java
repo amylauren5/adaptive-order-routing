@@ -1,7 +1,7 @@
 package ict.um.orders.query_model.order_submitted;
 
-import ict.um.orders.coreapi.enums.OrderStatus;
-import ict.um.orders.coreapi.events.*;
+import ict.um.orders.core_api.enums.OrderStatus;
+import ict.um.orders.core_api.events.*;
 import org.axonframework.eventhandling.EventHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
