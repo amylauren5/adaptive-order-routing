@@ -1,4 +1,4 @@
-package ict.um.orders.services;
+package ict.um.orders.services.blockchain;
 
 import ict.um.orders.web3j.OrderLifecycleContract;
 import jakarta.annotation.PostConstruct;

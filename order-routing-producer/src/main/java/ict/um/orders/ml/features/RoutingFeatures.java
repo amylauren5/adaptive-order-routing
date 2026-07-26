@@ -1,14 +1,26 @@
 package ict.um.orders.ml.features;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 public class RoutingFeatures {
 
+    public static final List<String> QUEUE_ORDER =
+            List.of("high", "medium", "low");
+
     private final Map<String, QueueFeatures> queues;
 
     public RoutingFeatures(Map<String, QueueFeatures> queues) {
-        this.queues = queues;
+        this.queues = Map.copyOf(queues);
+
+        for (String queueName : QUEUE_ORDER) {
+            if (!this.queues.containsKey(queueName)) {
+                throw new IllegalArgumentException(
+                        "Missing features for queue: " + queueName
+                );
+            }
+        }
     }
 
     public Map<String, QueueFeatures> queues() {
@@ -16,15 +28,11 @@ public class RoutingFeatures {
     }
 
     public double[] toVector() {
-        return queues.values().stream()
-                .flatMapToDouble(q -> Arrays.stream(new double[]{
-                        q.queueLength(),
-                        q.consumerThroughput(),
-                        q.arrivalInterval(),
-                        q.utilisation(),
-                        q.backlogGrowth(),
-                        q.tailLatency()
-                }))
+        return QUEUE_ORDER.stream()
+                .map(queues::get)
+                .flatMapToDouble(queue ->
+                        Arrays.stream(queue.toVector())
+                )
                 .toArray();
     }
 }

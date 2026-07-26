@@ -1,4 +1,4 @@
-package ict.um.orders.services;
+package ict.um.orders.services.blockchain;
 
 import ict.um.orders.core_api.commands.CreateOrderCommand;
 import ict.um.orders.query_model.order_submitted.OrderSubmittedView;

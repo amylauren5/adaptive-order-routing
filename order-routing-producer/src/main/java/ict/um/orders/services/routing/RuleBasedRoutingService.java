@@ -1,4 +1,4 @@
-package ict.um.orders.services;
+package ict.um.orders.services.routing;
 
 import ict.um.orders.config.QueueNames;
 import ict.um.orders.routing.OrderRoutingContext;
@@ -16,9 +16,9 @@ public class RuleBasedRoutingService implements RoutingService {
     @Override
     public String route(OrderRoutingContext context) {
         return switch (context.status()) {
-            case CREATED -> QueueNames.LOW;
-            case APPROVED, DISPATCHED -> QueueNames.MEDIUM;
-            case COMPLETED, CANCELLED -> QueueNames.HIGH;
+            case CREATED, APPROVED, DISPATCHED -> QueueNames.LOW;
+            case COMPLETED -> QueueNames.MEDIUM;
+            case CANCELLED -> QueueNames.HIGH;
         };
     }
 }

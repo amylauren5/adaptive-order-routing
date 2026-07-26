@@ -1,7 +1,7 @@
 package ict.um.orders.workload;
 
 import ict.um.orders.core_api.commands.*;
-import ict.um.orders.services.DataHashingService;
+import ict.um.orders.services.blockchain.DataHashingService;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.axonframework.commandhandling.gateway.CommandGateway;

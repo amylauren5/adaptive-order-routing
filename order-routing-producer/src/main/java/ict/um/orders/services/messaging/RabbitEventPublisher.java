@@ -1,4 +1,4 @@
-package ict.um.orders.services;
+package ict.um.orders.services.messaging;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

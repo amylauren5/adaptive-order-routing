@@ -1,4 +1,4 @@
-package ict.um.orders.services;
+package ict.um.orders.services.routing;
 
 import ict.um.orders.routing.OrderRoutingContext;
 

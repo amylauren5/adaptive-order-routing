@@ -3,17 +3,30 @@ package ict.um.orders.ml.model;
 import ml.dmlc.xgboost4j.java.Booster;
 import ml.dmlc.xgboost4j.java.XGBoost;
 import ml.dmlc.xgboost4j.java.XGBoostError;
+import org.springframework.core.io.Resource;
 
-public class ModelLoader {
+import java.io.IOException;
+import java.io.InputStream;
 
-    public static Booster loadXGBoost(String path) {
-        try {
-            return XGBoost.loadModel(path);
+public final class ModelLoader {
 
-        } catch (XGBoostError e) {
-            throw new RuntimeException(
-                    "Failed to load XGBoost model: " + path,
-                    e
+    private ModelLoader() {
+    }
+
+    public static Booster loadXGBoost(Resource resource) {
+        if (!resource.exists()) {
+            throw new IllegalStateException(
+                    "XGBoost model not found: " + resource
+            );
+        }
+
+        try (InputStream inputStream = resource.getInputStream()) {
+            return XGBoost.loadModel(inputStream);
+
+        } catch (IOException | XGBoostError exception) {
+            throw new IllegalStateException(
+                    "Failed to load XGBoost model: " + resource,
+                    exception
             );
         }
     }
