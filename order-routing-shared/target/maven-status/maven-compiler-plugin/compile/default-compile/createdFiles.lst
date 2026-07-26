@@ -1,0 +1,7 @@
+ict/um/orders/core_api/enums/OrderStatus.class
+ict/um/orders/core_api/events/OrderCreatedEvent.class
+ict/um/orders/core_api/events/OrderCompletedEvent.class
+ict/um/orders/core_api/events/OrderCancelledEvent.class
+ict/um/orders/core_api/events/TransactionReceiptEvent.class
+ict/um/orders/core_api/events/OrderApprovedEvent.class
+ict/um/orders/core_api/events/OrderDispatchedEvent.class

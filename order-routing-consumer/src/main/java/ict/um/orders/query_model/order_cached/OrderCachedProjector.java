@@ -1,8 +1,8 @@
 package ict.um.orders.query_model.order_cached;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import ict.um.orders.coreapi.events.*;
-import ict.um.orders.coreapi.enums.OrderStatus;
+import ict.um.orders.core_api.events.*;
+import ict.um.orders.core_api.enums.OrderStatus;
 import org.axonframework.eventhandling.EventHandler;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageDeliveryMode;

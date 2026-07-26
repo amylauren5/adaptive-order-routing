@@ -1,7 +1,7 @@
 package ict.um.orders.query_model.order_cached;
 
-import ict.um.orders.core_api.events.*;
 import ict.um.orders.core_api.enums.OrderStatus;
+import ict.um.orders.core_api.events.*;
 import ict.um.orders.core_api.queries.GetCacheByOrderIdQuery;
 import ict.um.orders.routing.OrderRoutingContext;
 import ict.um.orders.services.messaging.RabbitEventPublisher;

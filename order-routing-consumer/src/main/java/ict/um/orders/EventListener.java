@@ -1,8 +1,8 @@
 package ict.um.orders;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import ict.um.orders.coreapi.events.*;
-import ict.um.orders.coreapi.enums.OrderStatus;
+import ict.um.orders.core_api.events.*;
+import ict.um.orders.core_api.enums.OrderStatus;
 import ict.um.orders.query_model.order_cached.OrderCachedView;
 import ict.um.orders.query_model.order_cached.OrderCachedViewRepository;
 import ict.um.orders.services.BlockchainWriteService;

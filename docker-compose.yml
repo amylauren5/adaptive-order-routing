@@ -42,10 +42,11 @@ services:
       - ict3500-dissertation_rabbit-network
     restart: always
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8024"]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:8024" ]
+      start_period: 60s
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   rabbitmq:
     image: rabbitmq:management

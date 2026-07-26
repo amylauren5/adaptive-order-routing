@@ -15,7 +15,7 @@
     <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>Orders Adaptive Routing</name>
+    <name>Adaptive Order Routing Producer</name>
     <description>Case study application focusing on the ecommerce domain</description>
 
     <properties>
@@ -47,12 +47,6 @@
             <groupId>com.rabbitmq</groupId>
             <artifactId>amqp-client</artifactId>
             <version>5.25.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework.amqp</groupId>
-            <artifactId>spring-amqp</artifactId>
-            <version>3.2.3</version>
         </dependency>
 
         <dependency>
@@ -130,6 +124,13 @@
             <groupId>ml.dmlc</groupId>
             <artifactId>xgboost4j_2.13</artifactId>
             <version>3.3.0</version>
+        </dependency>
+
+        <!-- SHARED -->
+        <dependency>
+            <groupId>ict.um.orders</groupId>
+            <artifactId>shared</artifactId>
+            <version>1.0-SNAPSHOT</version>
         </dependency>
 
     </dependencies>
