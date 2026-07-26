@@ -16,14 +16,14 @@ import java.util.HashMap;
 import java.util.concurrent.CompletableFuture;
 
 @Service
-public class HashingService {
+public class DataHashingService {
 
-    private static final Logger logger = LoggerFactory.getLogger(HashingService.class);
+    private static final Logger logger = LoggerFactory.getLogger(DataHashingService.class);
 
     private final BlockchainReadService blockchainReadService;
 
     @Autowired
-    public HashingService(BlockchainReadService blockchainReadService) {
+    public DataHashingService(BlockchainReadService blockchainReadService) {
         this.blockchainReadService = blockchainReadService;
     }
 

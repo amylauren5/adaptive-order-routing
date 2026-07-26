@@ -1,36 +1,54 @@
 package ict.um.orders.services;
 
 import ict.um.orders.ml.features.RoutingFeatures;
-import ict.um.orders.ml.metrics.MetricsCollector;
+import ict.um.orders.ml.metrics.RoutingMetricsCollector;
 import ict.um.orders.ml.model.WorkloadPredictionModel;
 import ict.um.orders.ml.training.TrainingDataLogger;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import ict.um.orders.routing.OrderRoutingContext;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Service;
 
-@Component
-public class AdaptiveRoutingService {
+@Service
+@ConditionalOnProperty(
+        name = "routing.strategy",
+        havingValue = "ml"
+)
+public class AdaptiveRoutingService implements RoutingService {
 
-    private final MetricsCollector metricsCollector;
+    private final RoutingMetricsCollector metricsCollector;
     private final WorkloadPredictionModel predictionModel;
     private final TrainingDataLogger trainingLogger;
 
-    @Autowired
-    public AdaptiveRoutingService(MetricsCollector metricsCollector,
-                          WorkloadPredictionModel predictionModel,
-                          TrainingDataLogger trainingLogger) {
+    public AdaptiveRoutingService(
+            RoutingMetricsCollector metricsCollector,
+            WorkloadPredictionModel predictionModel,
+            TrainingDataLogger trainingLogger
+    ) {
         this.metricsCollector = metricsCollector;
         this.predictionModel = predictionModel;
         this.trainingLogger = trainingLogger;
     }
 
-    public String route(Object evt) {
+    @Override
+    public String route(OrderRoutingContext context) {
         try {
             RoutingFeatures features = metricsCollector.collectAll();
-            String queue = predictionModel.predict(features);
-            trainingLogger.log(features, queue);
-            return queue;
+
+            String predictedQueue =
+                    predictionModel.predict(features);
+
+            trainingLogger.log(
+                    features,
+                    predictedQueue
+            );
+
+            return predictedQueue;
+
         } catch (Exception e) {
-            throw new RuntimeException("Routing failed", e);
+            throw new IllegalStateException(
+                    "Failed to perform ML-based routing",
+                    e
+            );
         }
     }
 }

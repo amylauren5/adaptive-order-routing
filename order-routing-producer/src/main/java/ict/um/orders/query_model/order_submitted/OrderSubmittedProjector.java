@@ -1,8 +1,11 @@
 package ict.um.orders.query_model.order_submitted;
 
+import ict.um.orders.command_model.Order;
 import ict.um.orders.core_api.enums.OrderStatus;
 import ict.um.orders.core_api.events.*;
+import ict.um.orders.core_api.queries.GetSubmittedByOrderIdQuery;
 import org.axonframework.eventhandling.EventHandler;
+import org.axonframework.queryhandling.QueryHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -17,58 +20,87 @@ public class OrderSubmittedProjector {
     }
 
     @EventHandler
-    public void on(OrderCreatedEvent evt) {
-
-        OrderSubmittedView view = new OrderSubmittedView(
-                evt.getOrderId(),
-                evt.getCustomerId(),
-                evt.getCategory(),
-                evt.getOrderValue(),
-                evt.getItemCount(),
-                evt.getTimestamp(),
-                evt.getPriority(),
-                evt.getSequenceNumber(),
+    public void on(OrderCreatedEvent event) {
+        repository.save(new OrderSubmittedView(
+                event.getOrderId(),
+                event.getCustomerId(),
+                event.getCategory(),
+                event.getOrderValue(),
+                event.getItemCount(),
+                event.getTimestamp(),
+                event.getPriority(),
+                event.getSequenceNumber(),
                 OrderStatus.CREATED.name(),
-                evt.getTimestamp(),        // initial lastEventTimestamp = creation timestamp
-                evt.getSequenceNumber()    // initial lastSequenceNumber = creation sequence
+                event.getTimestamp(),
+                event.getSequenceNumber()
+        ));
+    }
+
+    @EventHandler
+    public void on(OrderApprovedEvent event) {
+        update(
+                event.getOrderId(),
+                OrderStatus.APPROVED,
+                event.getTimestamp(),
+                event.getSequenceNumber()
         );
-
-        repository.save(view);
     }
 
     @EventHandler
-    public void on(OrderApprovedEvent evt) {
-        OrderSubmittedView view = repository.findById(evt.getOrderId()).orElseThrow();
-        view.setStatus(OrderStatus.APPROVED.name());
-        view.setLastEventTimestamp(evt.getTimestamp());
-        view.setLastSequenceNumber(evt.getSequenceNumber());
-        repository.save(view);
+    public void on(OrderDispatchedEvent event) {
+        update(
+                event.getOrderId(),
+                OrderStatus.DISPATCHED,
+                event.getTimestamp(),
+                event.getSequenceNumber()
+        );
     }
 
     @EventHandler
-    public void on(OrderDispatchedEvent evt) {
-        OrderSubmittedView view = repository.findById(evt.getOrderId()).orElseThrow();
-        view.setStatus(OrderStatus.DISPATCHED.name());
-        view.setLastEventTimestamp(evt.getTimestamp());
-        view.setLastSequenceNumber(evt.getSequenceNumber());
-        repository.save(view);
+    public void on(OrderCompletedEvent event) {
+        update(
+                event.getOrderId(),
+                OrderStatus.COMPLETED,
+                event.getTimestamp(),
+                event.getSequenceNumber()
+        );
     }
 
     @EventHandler
-    public void on(OrderCompletedEvent evt) {
-        OrderSubmittedView view = repository.findById(evt.getOrderId()).orElseThrow();
-        view.setStatus(OrderStatus.COMPLETED.name());
-        view.setLastEventTimestamp(evt.getTimestamp());
-        view.setLastSequenceNumber(evt.getSequenceNumber());
-        repository.save(view);
+    public void on(OrderCancelledEvent event) {
+        update(
+                event.getOrderId(),
+                OrderStatus.CANCELLED,
+                event.getTimestamp(),
+                event.getSequenceNumber()
+        );
     }
 
-    @EventHandler
-    public void on(OrderCancelledEvent evt) {
-        OrderSubmittedView view = repository.findById(evt.getOrderId()).orElseThrow();
-        view.setStatus(OrderStatus.CANCELLED.name());
-        view.setLastEventTimestamp(evt.getTimestamp());
-        view.setLastSequenceNumber(evt.getSequenceNumber());
+    // --- QUERY HANDLER ---
+    @QueryHandler
+    public OrderSubmittedView handle(GetSubmittedByOrderIdQuery query) {
+        return repository.findById(query.getOrderId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Submitted order not found: " + query.getOrderId()
+                ));
+    }
+
+    private void update(
+            String orderId,
+            OrderStatus status,
+            long timestamp,
+            int sequenceNumber
+    ) {
+        OrderSubmittedView view = repository.findById(orderId)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Submitted order not found while processing event: "
+                                + orderId
+                ));
+
+        view.setStatus(status.name());
+        view.setLastEventTimestamp(timestamp);
+        view.setLastSequenceNumber(sequenceNumber);
+
         repository.save(view);
     }
 }

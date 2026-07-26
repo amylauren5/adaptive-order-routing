@@ -1,7 +1,7 @@
 package ict.um.orders.user_interface;
 
 import ict.um.orders.core_api.commands.*;
-import ict.um.orders.services.HashingService;
+import ict.um.orders.services.DataHashingService;
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -17,13 +17,13 @@ import java.util.concurrent.CompletableFuture;
 public class OrderController {
 
     private final CommandGateway commandGateway;
-    private final HashingService hashingService;
+    private final DataHashingService dataHashingService;
 
     @Autowired
     public OrderController(CommandGateway commandGateway,
-                           HashingService hashingService) {
+                           DataHashingService dataHashingService) {
         this.commandGateway = commandGateway;
-        this.hashingService = hashingService;
+        this.dataHashingService = dataHashingService;
     }
 
     // --- CREATE ORDER ---
@@ -50,7 +50,7 @@ public class OrderController {
                 ""      // placeholder hash
         );
 
-        String dataHash = hashingService.computeInitialDataHash(temp);
+        String dataHash = dataHashingService.computeInitialDataHash(temp);
 
         // Final command with correct hash
         CreateOrderCommand command = new CreateOrderCommand(

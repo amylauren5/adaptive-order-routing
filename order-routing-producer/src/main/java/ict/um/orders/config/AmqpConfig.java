@@ -7,24 +7,18 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class AmqpConfig {
 
-    private static final String HIGH_PRIORITY_QUEUE = "priority.high";
-    private static final String MEDIUM_PRIORITY_QUEUE = "priority.medium";
-    private static final String LOW_PRIORITY_QUEUE = "proiority.low";
-
-
     @Bean
     public Queue highPriorityQueue() {
-        return new Queue(HIGH_PRIORITY_QUEUE, true);
+        return new Queue(QueueNames.HIGH, true);
     }
 
     @Bean
     public Queue mediumPriorityQueue() {
-        return new Queue(MEDIUM_PRIORITY_QUEUE, true);
+        return new Queue(QueueNames.MEDIUM, true);
     }
 
     @Bean
     public Queue lowPriorityQueue() {
-        return new Queue(LOW_PRIORITY_QUEUE, true);
+        return new Queue(QueueNames.LOW, true);
     }
-
 }

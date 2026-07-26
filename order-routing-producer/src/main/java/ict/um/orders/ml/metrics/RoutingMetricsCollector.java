@@ -9,13 +9,13 @@ import org.springframework.web.client.RestClient;
 import java.util.Map;
 
 @Component
-public class MetricsCollector {
+public class RoutingMetricsCollector {
 
     private final RestClient client;
     private final String user;
     private final String pass;
 
-    public MetricsCollector(
+    public RoutingMetricsCollector(
             @Value("${rabbit.mgmt.host}") String host,
             @Value("${rabbit.mgmt.user}") String user,
             @Value("${rabbit.mgmt.pass}") String pass
@@ -36,7 +36,11 @@ public class MetricsCollector {
                 .retrieve()
                 .body(QueueInfo.class);
 
-        assert info != null;
+        if (info == null) {
+            throw new IllegalStateException(
+                    "RabbitMQ returned no metrics for queue: " + queueName
+            );
+        }
 
         double queueLength = info.messages();
         double publishRate = info.message_stats().publish_details().rate();
@@ -60,9 +64,9 @@ public class MetricsCollector {
     public RoutingFeatures collectAll() {
         return new RoutingFeatures(
                 Map.of(
-                        "high", collect("priority-high"),
-                        "medium", collect("priority-medium"),
-                        "low", collect("priority-low")
+                        "high", collect("priority.high"),
+                        "medium", collect("priority.medium"),
+                        "low", collect("priority.low")
                 )
         );
     }

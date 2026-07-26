@@ -1,151 +1,139 @@
 package ict.um.orders.query_model.order_cached;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import ict.um.orders.core_api.events.*;
 import ict.um.orders.core_api.enums.OrderStatus;
-import ict.um.orders.core_api.queries.GetSubmittedByOrderIdQuery;
-import ict.um.orders.services.AdaptiveRoutingService;
-import ml.dmlc.xgboost4j.java.XGBoostError;
+import ict.um.orders.core_api.queries.GetCacheByOrderIdQuery;
+import ict.um.orders.routing.OrderRoutingContext;
+import ict.um.orders.services.RabbitEventPublisher;
+import ict.um.orders.services.RoutingService;
 import org.axonframework.eventhandling.EventHandler;
 import org.axonframework.queryhandling.QueryHandler;
-import org.springframework.amqp.core.Message;
-import org.springframework.amqp.core.MessageDeliveryMode;
-import org.springframework.amqp.core.MessagePostProcessor;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import java.io.IOException;
 
 @Component
 public class OrderCachedProjector {
 
     private final OrderCachedViewRepository repository;
-    private final RabbitTemplate rabbitTemplate;
-    private final ObjectMapper objectMapper;
-    private final AdaptiveRoutingService adaptiveRoutingService;
+    private final RabbitEventPublisher publisher;
+    private final RoutingService routingService;
 
     @Autowired
     public OrderCachedProjector(OrderCachedViewRepository repository,
-                                RabbitTemplate rabbitTemplate,
-                                ObjectMapper objectMapper,
-                                AdaptiveRoutingService adaptiveRoutingService) {
+                                RabbitEventPublisher publisher,
+                                RoutingService routingService) {
         this.repository = repository;
-        this.rabbitTemplate = rabbitTemplate;
-        this.objectMapper = objectMapper;
-        this.adaptiveRoutingService = adaptiveRoutingService;
-    }
-
-    private void sendToBroker(Object event, String queue) {
-        try {
-            String json = objectMapper.writeValueAsString(event);
-            rabbitTemplate.convertAndSend("", queue, json, new MessagePostProcessor() {
-                @Override
-                public Message postProcessMessage(Message message) {
-                    message.getMessageProperties().setDeliveryMode(MessageDeliveryMode.PERSISTENT);
-                    return message;
-                }
-            });
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        this.publisher = publisher;
+        this.routingService = routingService;
     }
 
     // --- EVENT HANDLERS ---
 
     @EventHandler
-    public void on(OrderCreatedEvent evt) throws XGBoostError, IOException {
+    public void on(OrderCreatedEvent event) {
         OrderCachedView view = new OrderCachedView(
-                evt.getOrderId(),
+                event.getOrderId(),
                 OrderStatus.CREATED.name(),
-                evt.getCategory(),
-                evt.getOrderValue(),
-                evt.getItemCount(),
-                evt.getTimestamp()
+                event.getCategory(),
+                event.getOrderValue(),
+                event.getItemCount(),
+                event.getTimestamp()
         );
-
-        // Save to repository
         repository.save(view);
 
-        // Send event to broker normally
-        sendToBroker(evt, "priority.low");
-
-        // Send event to broker using ML-based router
-        //String queue = adaptiveRoutingService.route(evt);
-        //sendToBroker(evt, queue);
+        routeAndPublish(
+                event,
+                view,
+                OrderStatus.CREATED,
+                event.getTimestamp()
+        );
     }
 
     @EventHandler
-    public void on(OrderApprovedEvent evt) {
-        OrderCachedView view = repository.findById(evt.getOrderId()).orElseThrow();
+    public void on(OrderApprovedEvent event) {
+        OrderCachedView view = repository.findById(event.getOrderId()).orElseThrow();
         view.setStatus(OrderStatus.APPROVED.name());
-        view.setLastEventTimestamp(evt.getTimestamp());
-
-        // Save to repository
+        view.setLastEventTimestamp(event.getTimestamp());
         repository.save(view);
 
-        // Send to broker normally
-        sendToBroker(evt, "priority.medium");
-
-        // Send event to broker using ML-based router
-        //String queue = adaptiveRoutingService.route(evt);
-        //sendToBroker(evt, queue);
+        routeAndPublish(
+                event,
+                view,
+                OrderStatus.APPROVED,
+                event.getTimestamp()
+        );
     }
 
     @EventHandler
-    public void on(OrderDispatchedEvent evt) {
-        OrderCachedView view = repository.findById(evt.getOrderId()).orElseThrow();
+    public void on(OrderDispatchedEvent event) {
+        OrderCachedView view = repository.findById(event.getOrderId()).orElseThrow();
         view.setStatus(OrderStatus.DISPATCHED.name());
-        view.setLastEventTimestamp(evt.getTimestamp());
-
-        // Save to repository
+        view.setLastEventTimestamp(event.getTimestamp());
         repository.save(view);
 
-        // Send to broker normally
-        sendToBroker(evt, "priority.medium");
-
-        // Send event to broker using ML-based router
-        //String queue = adaptiveRoutingService.route(evt);
-        //sendToBroker(evt, queue);
+        routeAndPublish(
+                event,
+                view,
+                OrderStatus.DISPATCHED,
+                event.getTimestamp()
+        );
     }
 
     @EventHandler
-    public void on(OrderCompletedEvent evt) {
-        OrderCachedView view = repository.findById(evt.getOrderId()).orElseThrow();
+    public void on(OrderCompletedEvent event) {
+        OrderCachedView view = repository.findById(event.getOrderId()).orElseThrow();
         view.setStatus(OrderStatus.COMPLETED.name());
-        view.setLastEventTimestamp(evt.getTimestamp());
-
-        // Save to repository
+        view.setLastEventTimestamp(event.getTimestamp());
         repository.save(view);
 
-        // Send to broker normally
-        sendToBroker(evt, "priority.high");
-
-        // Send event to broker using ML-based router
-        //String queue = adaptiveRoutingService.route(evt);
-        //sendToBroker(evt, queue);
+        routeAndPublish(
+                event,
+                view,
+                OrderStatus.COMPLETED,
+                event.getTimestamp()
+        );
     }
 
     @EventHandler
-    public void on(OrderCancelledEvent evt) {
-        OrderCachedView view = repository.findById(evt.getOrderId()).orElseThrow();
+    public void on(OrderCancelledEvent event) {
+        OrderCachedView view = repository.findById(event.getOrderId()).orElseThrow();
         view.setStatus(OrderStatus.CANCELLED.name());
-        view.setLastEventTimestamp(evt.getTimestamp());
-
-        // Save to repository
+        view.setLastEventTimestamp(event.getTimestamp());
         repository.save(view);
 
-        // Send to broker normally
-        sendToBroker(evt, "priority.high");
-
-        // Send event to broker using ML-based router
-        //String queue = adaptiveRoutingService.route(evt);
-        //sendToBroker(evt, queue);
+        routeAndPublish(
+                event,
+                view,
+                OrderStatus.CANCELLED,
+                event.getTimestamp()
+        );
     }
 
     // --- QUERY HANDLER ---
     @QueryHandler
-    public OrderCachedView handle(GetSubmittedByOrderIdQuery query) {
-        return repository.findById(query.getOrderId()).orElseThrow();
+    public OrderCachedView handle(GetCacheByOrderIdQuery query) {
+        return repository.findById(query.getOrderId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Cached order not found: " + query.getOrderId()
+                ));
+    }
+
+    private void routeAndPublish(
+            Object event,
+            OrderCachedView view,
+            OrderStatus status,
+            long timestamp
+    ) {
+        OrderRoutingContext context = new OrderRoutingContext(
+                view.getOrderId(),
+                status,
+                view.getCategory(),
+                view.getOrderValue(),
+                view.getItemCount(),
+                timestamp
+        );
+
+        String queue = routingService.route(context);
+        publisher.publish(queue, event);
     }
 }

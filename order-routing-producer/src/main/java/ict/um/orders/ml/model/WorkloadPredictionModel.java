@@ -4,9 +4,7 @@ import ict.um.orders.ml.features.RoutingFeatures;
 import ml.dmlc.xgboost4j.java.Booster;
 import ml.dmlc.xgboost4j.java.DMatrix;
 import ml.dmlc.xgboost4j.java.XGBoostError;
-import org.springframework.stereotype.Component;
 
-@Component
 public class WorkloadPredictionModel {
 
     private final Booster booster;

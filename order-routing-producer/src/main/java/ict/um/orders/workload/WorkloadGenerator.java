@@ -1,7 +1,7 @@
 package ict.um.orders.workload;
 
 import ict.um.orders.core_api.commands.*;
-import ict.um.orders.services.HashingService;
+import ict.um.orders.services.DataHashingService;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.axonframework.commandhandling.gateway.CommandGateway;
@@ -14,12 +14,12 @@ import java.util.concurrent.TimeUnit;
 public class WorkloadGenerator {
 
     private final CommandGateway commandGateway;
-    private final HashingService hashingService;
+    private final DataHashingService dataHashingService;
 
     public WorkloadGenerator(CommandGateway commandGateway,
-                             HashingService hashingService) {
+                             DataHashingService dataHashingService) {
         this.commandGateway = commandGateway;
-        this.hashingService = hashingService;
+        this.dataHashingService = dataHashingService;
     }
 
     @Scheduled(fixedRate = 5_000) // synthetic inter-arrival
@@ -46,7 +46,7 @@ public class WorkloadGenerator {
                 ""      // placeholder hash
         );
 
-        String dataHash = hashingService.computeInitialDataHash(temp);
+        String dataHash = dataHashingService.computeInitialDataHash(temp);
 
         // --- FINAL COMMAND WITH CORRECT HASH ---
         CreateOrderCommand createCmd = new CreateOrderCommand(
