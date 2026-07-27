@@ -1,10 +1,9 @@
 package ict.um.orders.ml.metrics;
 
-import ict.um.orders.config.QueueNames;
+import ict.um.orders.core_api.config.QueueNames;
 import ict.um.orders.ml.features.QueueFeatures;
 import ict.um.orders.ml.features.RoutingFeatures;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 

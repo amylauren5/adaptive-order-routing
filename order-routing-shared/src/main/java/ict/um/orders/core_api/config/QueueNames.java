@@ -1,4 +1,4 @@
-package ict.um.orders.config;
+package ict.um.orders.core_api.config;
 
 public final class QueueNames {
 

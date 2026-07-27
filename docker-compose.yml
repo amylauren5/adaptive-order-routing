@@ -35,6 +35,10 @@ services:
   axon-server:
     image: axoniq/axonserver
     container_name: axon-server
+    env_file:
+      - ./scripts/.env
+    environment:
+      axoniq_console_authentication: ${AXONIQ_CONSOLE_AUTHENTICATION}
     ports:
       - "8024:8024"
       - "8124:8124"

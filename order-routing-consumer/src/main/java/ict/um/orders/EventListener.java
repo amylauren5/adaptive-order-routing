@@ -14,6 +14,8 @@ import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 
+import static ict.um.orders.core_api.config.QueueNames.*;
+
 @Component
 public class EventListener {
 
@@ -22,11 +24,6 @@ public class EventListener {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final OrderCachedViewRepository orderCachedViewRepository;
     private final BlockchainWriteService blockchainWriteService;
-
-    // Priority queues
-    private static final String HIGH_PRIORITY_QUEUE = "priority.high";
-    private static final String MEDIUM_PRIORITY_QUEUE = "priority.medium";
-    private static final String LOW_PRIORITY_QUEUE = "priority.low"; // fixed typo
 
     @Autowired
     public EventListener(BlockchainWriteService blockchainWriteService,
@@ -37,7 +34,7 @@ public class EventListener {
 
     // ------------------- ORDER CREATED → LOW PRIORITY -------------------
 
-    @RabbitListener(queues = LOW_PRIORITY_QUEUE)
+    @RabbitListener(queues = LOW)
     public void receiveOrderCreated(String message) {
         try {
             OrderCreatedEvent event = objectMapper.readValue(message, OrderCreatedEvent.class);
@@ -58,7 +55,7 @@ public class EventListener {
 
     // ------------------- ORDER APPROVED → MEDIUM PRIORITY -------------------
 
-    @RabbitListener(queues = MEDIUM_PRIORITY_QUEUE)
+    @RabbitListener(queues = MEDIUM)
     public void receiveOrderApproved(String message) {
         try {
             OrderApprovedEvent event = objectMapper.readValue(message, OrderApprovedEvent.class);
@@ -73,7 +70,7 @@ public class EventListener {
 
     // ------------------- ORDER DISPATCHED → MEDIUM PRIORITY -------------------
 
-    @RabbitListener(queues = MEDIUM_PRIORITY_QUEUE)
+    @RabbitListener(queues = MEDIUM)
     public void receiveOrderDispatched(String message) {
         try {
             OrderDispatchedEvent event = objectMapper.readValue(message, OrderDispatchedEvent.class);
@@ -88,7 +85,7 @@ public class EventListener {
 
     // ------------------- ORDER COMPLETED → HIGH PRIORITY -------------------
 
-    @RabbitListener(queues = HIGH_PRIORITY_QUEUE)
+    @RabbitListener(queues = HIGH)
     public void receiveOrderCompleted(String message) {
         try {
             OrderCompletedEvent event = objectMapper.readValue(message, OrderCompletedEvent.class);
@@ -103,7 +100,7 @@ public class EventListener {
 
     // ------------------- ORDER CANCELLED → HIGH PRIORITY -------------------
 
-    @RabbitListener(queues = HIGH_PRIORITY_QUEUE)
+    @RabbitListener(queues = HIGH)
     public void receiveOrderCancelled(String message) {
         try {
             OrderCancelledEvent event = objectMapper.readValue(message, OrderCancelledEvent.class);

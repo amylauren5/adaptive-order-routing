@@ -1,5 +1,6 @@
 package ict.um.orders.config;
 
+import ict.um.orders.core_api.config.QueueNames;
 import org.springframework.amqp.core.Queue;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

@@ -1,6 +1,6 @@
 package ict.um.orders.ml.training;
 
-import ict.um.orders.config.QueueNames;
+import ict.um.orders.core_api.config.QueueNames;
 import ict.um.orders.ml.features.QueueFeatures;
 import ict.um.orders.ml.features.RoutingFeatures;
 import org.springframework.stereotype.Component;

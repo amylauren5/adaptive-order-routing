@@ -1,6 +1,6 @@
 package ict.um.orders.services.routing;
 
-import ict.um.orders.config.QueueNames;
+import ict.um.orders.core_api.config.QueueNames;
 import ict.um.orders.routing.OrderRoutingContext;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
