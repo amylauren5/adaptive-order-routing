@@ -8,10 +8,12 @@ services:
       context: ./order-routing-producer
       dockerfile: Dockerfile
     container_name: producer-app
-    ports:
-      - "8080:8080"
     env_file:
       - ./scripts/.env
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "8080:8080"
     networks:
       - ict3500-dissertation_rabbit-network
     depends_on:
@@ -33,15 +35,18 @@ services:
         condition: service_healthy
 
   axon-server:
-    image: axoniq/axonserver
+    image: docker.axoniq.io/axoniq/axonserver:2026.0.5
     container_name: axon-server
-    env_file:
-      - ./scripts/.env
+    hostname: axon-server
     environment:
-      axoniq_console_authentication: ${AXONIQ_CONSOLE_AUTHENTICATION}
+      AXONIQ_AXONSERVER_STANDALONE: "true"
+      # axoniq_platform_authentication: ${AXONIQ_PLATFORM_AUTHENTICATION}
+      axoniq_axonserver_hostname: axon-server
+      axoniq_axonserver_internal_hostname: axon-server
     ports:
       - "8024:8024"
       - "8124:8124"
+      - "8224:8224"
     networks:
       - ict3500-dissertation_rabbit-network
     restart: always
@@ -55,6 +60,8 @@ services:
   rabbitmq:
     image: rabbitmq:management
     container_name: rabbit-broker
+    env_file:
+      - ./scripts/.env
     ports:
       - "5672:5672"
       - "15672:15672"

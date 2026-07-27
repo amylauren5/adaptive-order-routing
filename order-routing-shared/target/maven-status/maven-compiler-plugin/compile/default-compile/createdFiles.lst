@@ -3,6 +3,8 @@ ict/um/orders/core_api/events/OrderCreatedEvent.class
 ict/um/orders/core_api/config/QueueNames.class
 ict/um/orders/core_api/events/OrderCompletedEvent.class
 ict/um/orders/core_api/events/OrderCancelledEvent.class
+ict/um/orders/core_api/messaging/RoutedEventType.class
 ict/um/orders/core_api/events/TransactionReceiptEvent.class
+ict/um/orders/core_api/messaging/RoutedEventMessage.class
 ict/um/orders/core_api/events/OrderApprovedEvent.class
 ict/um/orders/core_api/events/OrderDispatchedEvent.class

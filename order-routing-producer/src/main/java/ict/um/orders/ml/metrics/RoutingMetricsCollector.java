@@ -5,7 +5,9 @@ import ict.um.orders.ml.features.QueueFeatures;
 import ict.um.orders.ml.features.RoutingFeatures;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 import java.util.Map;
 
@@ -17,63 +19,33 @@ public class RoutingMetricsCollector {
     private static final double MAX_UTILISATION = 10.0;
 
     private final RestClient client;
-    private final String user;
-    private final String pass;
+    private final String virtualHost;
 
     public RoutingMetricsCollector(
             @Value("${rabbit.mgmt.host}") String host,
             @Value("${rabbit.mgmt.user}") String user,
-            @Value("${rabbit.mgmt.pass}") String pass
+            @Value("${rabbit.mgmt.pass}") String pass,
+            @Value("${rabbit.mgmt.vhost:/}") String virtualHost
     ) {
-        this.user = user;
-        this.pass = pass;
+        this.virtualHost = virtualHost;
 
         this.client = RestClient.builder()
                 .baseUrl(host + "/api")
+                .defaultHeaders(headers -> headers.setBasicAuth(user, pass))
                 .build();
     }
 
     public QueueFeatures collect(String queueName) {
-        QueueInfo info = client.get()
-                .uri("/queues/%2F/{queue}", queueName)
-                .headers(headers -> headers.setBasicAuth(user, pass))
-                .retrieve()
-                .body(QueueInfo.class);
+        QueueInfo info = fetchQueueInfo(queueName);
 
-        if (info == null) {
-            throw new IllegalStateException(
-                    "RabbitMQ returned no metrics for queue: " + queueName
-            );
-        }
-
-        double queueLength = info.messages();
+        double queueLength = Math.max(info.messages(), 0.0);
         double publishRate = readPublishRate(info);
         double ackRate = readAckRate(info);
 
-        double arrivalInterval = publishRate <= 0.0
-                ? MAX_INTERVAL_SECONDS
-                : Math.min(
-                1.0 / publishRate,
-                MAX_INTERVAL_SECONDS
-        );
-
-        double utilisation = ackRate <= 0.0
-                ? (publishRate > 0.0 ? MAX_UTILISATION : 0.0)
-                : Math.min(
-                publishRate / ackRate,
-                MAX_UTILISATION
-        );
-
+        double arrivalInterval = calculateArrivalInterval(publishRate);
+        double utilisation = calculateUtilisation(publishRate, ackRate);
         double backlogGrowth = publishRate - ackRate;
-
-        double tailLatency = ackRate <= 0.0
-                ? (queueLength > 0.0
-                ? MAX_TAIL_LATENCY_SECONDS
-                : 0.0)
-                : Math.min(
-                queueLength / ackRate,
-                MAX_TAIL_LATENCY_SECONDS
-        );
+        double tailLatency = calculateTailLatency(queueLength, ackRate);
 
         return new QueueFeatures(
                 queueLength,
@@ -92,6 +64,81 @@ public class RoutingMetricsCollector {
                         "medium", collect(QueueNames.MEDIUM),
                         "low", collect(QueueNames.LOW)
                 )
+        );
+    }
+
+    private QueueInfo fetchQueueInfo(String queueName) {
+        try {
+            QueueInfo info = client.get()
+                    .uri(uriBuilder -> uriBuilder
+                            .pathSegment("queues", virtualHost, queueName)
+                            .build())
+                    .retrieve()
+                    .body(QueueInfo.class);
+
+            if (info == null) {
+                throw new IllegalStateException(
+                        "RabbitMQ returned an empty response for queue: "
+                                + queueName
+                );
+            }
+
+            return info;
+        } catch (HttpClientErrorException.NotFound exception) {
+            throw new IllegalStateException(
+                    "RabbitMQ queue '%s' was not found in virtual host '%s'"
+                            .formatted(queueName, virtualHost),
+                    exception
+            );
+        } catch (RestClientException exception) {
+            throw new IllegalStateException(
+                    "Failed to retrieve RabbitMQ metrics for queue: "
+                            + queueName,
+                    exception
+            );
+        }
+    }
+
+    private double calculateArrivalInterval(double publishRate) {
+        if (publishRate <= 0.0) {
+            return MAX_INTERVAL_SECONDS;
+        }
+
+        return Math.min(
+                1.0 / publishRate,
+                MAX_INTERVAL_SECONDS
+        );
+    }
+
+    private double calculateUtilisation(
+            double publishRate,
+            double ackRate
+    ) {
+        if (ackRate <= 0.0) {
+            return publishRate > 0.0
+                    ? MAX_UTILISATION
+                    : 0.0;
+        }
+
+        return Math.min(
+                publishRate / ackRate,
+                MAX_UTILISATION
+        );
+    }
+
+    private double calculateTailLatency(
+            double queueLength,
+            double ackRate
+    ) {
+        if (ackRate <= 0.0) {
+            return queueLength > 0.0
+                    ? MAX_TAIL_LATENCY_SECONDS
+                    : 0.0;
+        }
+
+        return Math.min(
+                queueLength / ackRate,
+                MAX_TAIL_LATENCY_SECONDS
         );
     }
 

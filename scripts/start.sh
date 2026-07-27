@@ -23,11 +23,11 @@ docker run --rm  \
   -w /scripts docker:stable sh ./extract-ganache.sh
 
 echo "Starting other services with docker-compose..."
-docker compose up -d postgres rabbitmq 
+docker compose up -d postgres rabbitmq
 
 sleep 5
 
-docker compose up -d axon-server 
+docker compose --env-file ./.env up -d axon-server
 
 docker compose up -d producer-app consumer-app --build
 

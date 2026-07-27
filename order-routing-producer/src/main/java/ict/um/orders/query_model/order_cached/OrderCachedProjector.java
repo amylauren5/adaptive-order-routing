@@ -2,6 +2,7 @@ package ict.um.orders.query_model.order_cached;
 
 import ict.um.orders.core_api.enums.OrderStatus;
 import ict.um.orders.core_api.events.*;
+import ict.um.orders.core_api.messaging.RoutedEventType;
 import ict.um.orders.core_api.queries.GetCacheByOrderIdQuery;
 import ict.um.orders.routing.OrderRoutingContext;
 import ict.um.orders.services.messaging.RabbitEventPublisher;
@@ -43,6 +44,7 @@ public class OrderCachedProjector {
 
         routeAndPublish(
                 event,
+                RoutedEventType.ORDER_CREATED,
                 view,
                 OrderStatus.CREATED,
                 event.getTimestamp()
@@ -58,6 +60,7 @@ public class OrderCachedProjector {
 
         routeAndPublish(
                 event,
+                RoutedEventType.ORDER_APPROVED,
                 view,
                 OrderStatus.APPROVED,
                 event.getTimestamp()
@@ -73,6 +76,7 @@ public class OrderCachedProjector {
 
         routeAndPublish(
                 event,
+                RoutedEventType.ORDER_DISPATCHED,
                 view,
                 OrderStatus.DISPATCHED,
                 event.getTimestamp()
@@ -88,6 +92,7 @@ public class OrderCachedProjector {
 
         routeAndPublish(
                 event,
+                RoutedEventType.ORDER_COMPLETED,
                 view,
                 OrderStatus.COMPLETED,
                 event.getTimestamp()
@@ -103,6 +108,7 @@ public class OrderCachedProjector {
 
         routeAndPublish(
                 event,
+                RoutedEventType.ORDER_CANCELLED,
                 view,
                 OrderStatus.CANCELLED,
                 event.getTimestamp()
@@ -120,6 +126,7 @@ public class OrderCachedProjector {
 
     private void routeAndPublish(
             Object event,
+            RoutedEventType eventType,
             OrderCachedView view,
             OrderStatus status,
             long timestamp
@@ -134,6 +141,7 @@ public class OrderCachedProjector {
         );
 
         String queue = routingService.route(context);
-        publisher.publish(queue, event);
+
+        publisher.publish(queue, eventType, event);
     }
 }

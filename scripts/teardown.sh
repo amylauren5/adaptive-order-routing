@@ -1,7 +1,7 @@
 #!/bin/bash
 
-echo "Stopping and removing ganache container..."
-# Stop and remove ganache container
+# Remove ganache container
+echo "Removing ganache container..."
 docker stop ganache 2>/dev/null && docker rm ganache 2>/dev/null
 
 # Known Docker network name

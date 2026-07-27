@@ -1,153 +1,337 @@
 package ict.um.orders;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import ict.um.orders.core_api.events.*;
 import ict.um.orders.core_api.enums.OrderStatus;
+import ict.um.orders.core_api.events.OrderApprovedEvent;
+import ict.um.orders.core_api.events.OrderCancelledEvent;
+import ict.um.orders.core_api.events.OrderCompletedEvent;
+import ict.um.orders.core_api.events.OrderCreatedEvent;
+import ict.um.orders.core_api.events.OrderDispatchedEvent;
+import ict.um.orders.core_api.messaging.RoutedEventMessage;
 import ict.um.orders.query_model.order_cached.OrderCachedView;
 import ict.um.orders.query_model.order_cached.OrderCachedViewRepository;
 import ict.um.orders.services.BlockchainWriteService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
-
-import static ict.um.orders.core_api.config.QueueNames.*;
+import static ict.um.orders.core_api.config.QueueNames.HIGH;
+import static ict.um.orders.core_api.config.QueueNames.LOW;
+import static ict.um.orders.core_api.config.QueueNames.MEDIUM;
 
 @Component
 public class EventListener {
 
-    private static final Logger logger = LoggerFactory.getLogger(EventListener.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(EventListener.class);
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
     private final OrderCachedViewRepository orderCachedViewRepository;
     private final BlockchainWriteService blockchainWriteService;
 
-    @Autowired
-    public EventListener(BlockchainWriteService blockchainWriteService,
-                         OrderCachedViewRepository orderCachedViewRepository) {
+    public EventListener(
+            ObjectMapper objectMapper,
+            BlockchainWriteService blockchainWriteService,
+            OrderCachedViewRepository orderCachedViewRepository
+    ) {
+        this.objectMapper = objectMapper;
         this.blockchainWriteService = blockchainWriteService;
         this.orderCachedViewRepository = orderCachedViewRepository;
     }
 
-    // ------------------- ORDER CREATED → LOW PRIORITY -------------------
+    // ------------------- Queue listeners -------------------
 
     @RabbitListener(queues = LOW)
-    public void receiveOrderCreated(String message) {
-        try {
-            OrderCreatedEvent event = objectMapper.readValue(message, OrderCreatedEvent.class);
+    public void receiveLowPriority(String message) {
+        receive(message, LOW);
+    }
 
-            blockchainWriteService.createOrderOnBlockchain(event.getOrderId(), event.getDataHash())
-                    .thenAccept(txHash -> saveOrderCachedView(
+    @RabbitListener(queues = MEDIUM)
+    public void receiveMediumPriority(String message) {
+        receive(message, MEDIUM);
+    }
+
+    @RabbitListener(queues = HIGH)
+    public void receiveHighPriority(String message) {
+        receive(message, HIGH);
+    }
+
+    // ------------------- Envelope dispatch -------------------
+
+    private void receive(String message, String queue) {
+        try {
+            RoutedEventMessage routedMessage =
+                    objectMapper.readValue(message, RoutedEventMessage.class);
+
+            if (routedMessage.getEventType() == null) {
+                throw new IllegalArgumentException(
+                        "Routed message does not contain an event type"
+                );
+            }
+
+            if (routedMessage.getPayload() == null
+                    || routedMessage.getPayload().isBlank()) {
+                throw new IllegalArgumentException(
+                        "Routed message does not contain a payload"
+                );
+            }
+
+            logger.info(
+                    "Received {} from queue {}",
+                    routedMessage.getEventType(),
+                    queue
+            );
+
+            switch (routedMessage.getEventType()) {
+                case ORDER_CREATED ->
+                        handleOrderCreated(routedMessage.getPayload());
+
+                case ORDER_APPROVED ->
+                        handleOrderApproved(routedMessage.getPayload());
+
+                case ORDER_DISPATCHED ->
+                        handleOrderDispatched(routedMessage.getPayload());
+
+                case ORDER_COMPLETED ->
+                        handleOrderCompleted(routedMessage.getPayload());
+
+                case ORDER_CANCELLED ->
+                        handleOrderCancelled(routedMessage.getPayload());
+            }
+
+        } catch (JsonProcessingException exception) {
+            logger.error(
+                    "Failed to deserialize routed message from queue {}: {}",
+                    queue,
+                    message,
+                    exception
+            );
+
+        } catch (Exception exception) {
+            logger.error(
+                    "Failed to process message from queue {}: {}",
+                    queue,
+                    message,
+                    exception
+            );
+        }
+    }
+
+    // ------------------- Event handlers -------------------
+
+    private void handleOrderCreated(String payload)
+            throws JsonProcessingException {
+
+        OrderCreatedEvent event =
+                objectMapper.readValue(payload, OrderCreatedEvent.class);
+
+        blockchainWriteService
+                .createOrderOnBlockchain(
+                        event.getOrderId(),
+                        event.getDataHash()
+                )
+                .thenAccept(transactionHash -> {
+                    saveOrderCachedView(
                             event.getOrderId(),
-                            OrderStatus.CREATED.name(),
+                            OrderStatus.CREATED,
                             event.getCategory(),
                             event.getOrderValue(),
-                            event.getItemCount()
-                    ));
+                            event.getItemCount(),
+                            event.getTimestamp()
+                    );
 
-        } catch (Exception e) {
-            logDeserializationError("OrderCreatedEvent", message, e);
-        }
+                    logger.info(
+                            "Order {} created on blockchain with transaction {}",
+                            event.getOrderId(),
+                            transactionHash
+                    );
+                })
+                .exceptionally(exception -> {
+                    logger.error(
+                            "Failed to create order {} on blockchain",
+                            event.getOrderId(),
+                            exception
+                    );
+                    return null;
+                });
     }
 
-    // ------------------- ORDER APPROVED → MEDIUM PRIORITY -------------------
+    private void handleOrderApproved(String payload)
+            throws JsonProcessingException {
 
-    @RabbitListener(queues = MEDIUM)
-    public void receiveOrderApproved(String message) {
-        try {
-            OrderApprovedEvent event = objectMapper.readValue(message, OrderApprovedEvent.class);
+        OrderApprovedEvent event =
+                objectMapper.readValue(payload, OrderApprovedEvent.class);
 
-            blockchainWriteService.approveOrderOnBlockchain(event.getOrderId())
-                    .thenAccept(txHash -> updateStatus(event.getOrderId(), OrderStatus.APPROVED));
+        blockchainWriteService
+                .approveOrderOnBlockchain(event.getOrderId())
+                .thenAccept(transactionHash -> {
+                    updateStatus(
+                            event.getOrderId(),
+                            OrderStatus.APPROVED,
+                            event.getTimestamp()
+                    );
 
-        } catch (Exception e) {
-            logDeserializationError("OrderApprovedEvent", message, e);
-        }
+                    logger.info(
+                            "Order {} approved on blockchain with transaction {}",
+                            event.getOrderId(),
+                            transactionHash
+                    );
+                })
+                .exceptionally(exception -> {
+                    logger.error(
+                            "Failed to approve order {} on blockchain",
+                            event.getOrderId(),
+                            exception
+                    );
+                    return null;
+                });
     }
 
-    // ------------------- ORDER DISPATCHED → MEDIUM PRIORITY -------------------
+    private void handleOrderDispatched(String payload)
+            throws JsonProcessingException {
 
-    @RabbitListener(queues = MEDIUM)
-    public void receiveOrderDispatched(String message) {
-        try {
-            OrderDispatchedEvent event = objectMapper.readValue(message, OrderDispatchedEvent.class);
+        OrderDispatchedEvent event =
+                objectMapper.readValue(payload, OrderDispatchedEvent.class);
 
-            blockchainWriteService.dispatchOrderOnBlockchain(event.getOrderId())
-                    .thenAccept(txHash -> updateStatus(event.getOrderId(), OrderStatus.DISPATCHED));
+        blockchainWriteService
+                .dispatchOrderOnBlockchain(event.getOrderId())
+                .thenAccept(transactionHash -> {
+                    updateStatus(
+                            event.getOrderId(),
+                            OrderStatus.DISPATCHED,
+                            event.getTimestamp()
+                    );
 
-        } catch (Exception e) {
-            logDeserializationError("OrderDispatchedEvent", message, e);
-        }
+                    logger.info(
+                            "Order {} dispatched on blockchain with transaction {}",
+                            event.getOrderId(),
+                            transactionHash
+                    );
+                })
+                .exceptionally(exception -> {
+                    logger.error(
+                            "Failed to dispatch order {} on blockchain",
+                            event.getOrderId(),
+                            exception
+                    );
+                    return null;
+                });
     }
 
-    // ------------------- ORDER COMPLETED → HIGH PRIORITY -------------------
+    private void handleOrderCompleted(String payload)
+            throws JsonProcessingException {
 
-    @RabbitListener(queues = HIGH)
-    public void receiveOrderCompleted(String message) {
-        try {
-            OrderCompletedEvent event = objectMapper.readValue(message, OrderCompletedEvent.class);
+        OrderCompletedEvent event =
+                objectMapper.readValue(payload, OrderCompletedEvent.class);
 
-            blockchainWriteService.completeOrderOnBlockchain(event.getOrderId())
-                    .thenAccept(txHash -> updateStatus(event.getOrderId(), OrderStatus.COMPLETED));
+        blockchainWriteService
+                .completeOrderOnBlockchain(event.getOrderId())
+                .thenAccept(transactionHash -> {
+                    updateStatus(
+                            event.getOrderId(),
+                            OrderStatus.COMPLETED,
+                            event.getTimestamp()
+                    );
 
-        } catch (Exception e) {
-            logDeserializationError("OrderCompletedEvent", message, e);
-        }
+                    logger.info(
+                            "Order {} completed on blockchain with transaction {}",
+                            event.getOrderId(),
+                            transactionHash
+                    );
+                })
+                .exceptionally(exception -> {
+                    logger.error(
+                            "Failed to complete order {} on blockchain",
+                            event.getOrderId(),
+                            exception
+                    );
+                    return null;
+                });
     }
 
-    // ------------------- ORDER CANCELLED → HIGH PRIORITY -------------------
+    private void handleOrderCancelled(String payload)
+            throws JsonProcessingException {
 
-    @RabbitListener(queues = HIGH)
-    public void receiveOrderCancelled(String message) {
-        try {
-            OrderCancelledEvent event = objectMapper.readValue(message, OrderCancelledEvent.class);
+        OrderCancelledEvent event =
+                objectMapper.readValue(payload, OrderCancelledEvent.class);
 
-            blockchainWriteService.cancelOrderOnBlockchain(event.getOrderId(), event.getReason())
-                    .thenAccept(txHash -> updateStatus(event.getOrderId(), OrderStatus.CANCELLED));
+        blockchainWriteService
+                .cancelOrderOnBlockchain(
+                        event.getOrderId(),
+                        event.getReason()
+                )
+                .thenAccept(transactionHash -> {
+                    updateStatus(
+                            event.getOrderId(),
+                            OrderStatus.CANCELLED,
+                            event.getTimestamp()
+                    );
 
-        } catch (Exception e) {
-            logDeserializationError("OrderCancelledEvent", message, e);
-        }
+                    logger.info(
+                            "Order {} cancelled on blockchain with transaction {}",
+                            event.getOrderId(),
+                            transactionHash
+                    );
+                })
+                .exceptionally(exception -> {
+                    logger.error(
+                            "Failed to cancel order {} on blockchain",
+                            event.getOrderId(),
+                            exception
+                    );
+                    return null;
+                });
     }
 
-    // ------------------- Utility Methods -------------------
+    // ------------------- Projection updates -------------------
 
-    private void saveOrderCachedView(String orderId,
-                                     String status,
-                                     String category,
-                                     double orderValue,
-                                     int itemCount) {
-
-        long timestamp = Instant.now().toEpochMilli();
-
+    private void saveOrderCachedView(
+            String orderId,
+            OrderStatus status,
+            String category,
+            double orderValue,
+            int itemCount,
+            long eventTimestamp
+    ) {
         OrderCachedView view = new OrderCachedView(
                 orderId,
-                status,
+                status.name(),
                 category,
                 orderValue,
                 itemCount,
-                timestamp
+                eventTimestamp
         );
 
         orderCachedViewRepository.save(view);
-        logger.info("OrderCachedView stored: {}", view);
+
+        logger.info(
+                "OrderCachedView stored for order {} with status {}",
+                orderId,
+                status
+        );
     }
 
-    private void updateStatus(String orderId, OrderStatus newStatus) {
+    private void updateStatus(
+            String orderId,
+            OrderStatus newStatus,
+            long eventTimestamp
+    ) {
         OrderCachedView view = orderCachedViewRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalStateException("Cached view missing for orderId " + orderId));
+                .orElseThrow(() -> new IllegalStateException(
+                        "Cached view missing for orderId " + orderId
+                ));
 
         view.setStatus(newStatus.name());
-        view.setLastEventTimestamp(Instant.now().toEpochMilli());
+        view.setLastEventTimestamp(eventTimestamp);
 
         orderCachedViewRepository.save(view);
-        logger.info("OrderCachedView updated: {}", view);
-    }
 
-    private void logDeserializationError(String type, String message, Exception e) {
-        logger.error("Failed to deserialize {}: {}", type, message, e);
+        logger.info(
+                "OrderCachedView updated for order {} to status {}",
+                orderId,
+                newStatus
+        );
     }
 }

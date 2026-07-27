@@ -3,6 +3,7 @@ package ict.um.orders.ml.training;
 import ict.um.orders.ml.features.QueueFeatures;
 import ict.um.orders.ml.features.RoutingFeatures;
 import jakarta.annotation.PreDestroy;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
@@ -19,10 +20,17 @@ public class TrainingDataLogger {
 
     private final FileWriter writer;
 
-    public TrainingDataLogger() throws IOException {
-        File file = new File("training-data.csv");
-        boolean newFile = !file.exists() || file.length() == 0;
+    public TrainingDataLogger(
+            @Value("${training.data-path:training-data.csv}") String path
+    ) throws IOException {
+        File file = new File(path);
 
+        File parent = file.getParentFile();
+        if (parent != null) {
+            parent.mkdirs();
+        }
+
+        boolean newFile = !file.exists() || file.length() == 0;
         this.writer = new FileWriter(file, true);
 
         if (newFile) {
