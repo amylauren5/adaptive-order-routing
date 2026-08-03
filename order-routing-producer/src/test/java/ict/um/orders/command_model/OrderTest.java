@@ -22,7 +22,6 @@ class OrderTest {
     private static final String CATEGORY = "ELECTRONICS";
     private static final double ORDER_VALUE = 249.99;
     private static final int ITEM_COUNT = 2;
-    private static final int PRIORITY = 3;
     private static final String DATA_HASH = "test-data-hash";
 
     private static final long CREATED_AT = 1_700_000_000_000L;
@@ -61,7 +60,6 @@ class OrderTest {
                 ORDER_VALUE,
                 ITEM_COUNT,
                 CREATED_AT,
-                PRIORITY,
                 1,
                 DATA_HASH
         );
@@ -81,7 +79,6 @@ class OrderTest {
                 ORDER_VALUE,
                 ITEM_COUNT,
                 CREATED_AT,
-                PRIORITY,
                 1,
                 DATA_HASH
         );
@@ -101,7 +98,6 @@ class OrderTest {
                 ORDER_VALUE,
                 ITEM_COUNT,
                 CREATED_AT,
-                PRIORITY,
                 1,
                 DATA_HASH
         );
@@ -121,7 +117,6 @@ class OrderTest {
                 ORDER_VALUE,
                 ITEM_COUNT,
                 CREATED_AT,
-                PRIORITY,
                 1,
                 " "
         );
@@ -141,7 +136,6 @@ class OrderTest {
                 -1.00,
                 ITEM_COUNT,
                 CREATED_AT,
-                PRIORITY,
                 1,
                 DATA_HASH
         );
@@ -161,7 +155,6 @@ class OrderTest {
                 Double.NaN,
                 ITEM_COUNT,
                 CREATED_AT,
-                PRIORITY,
                 1,
                 DATA_HASH
         );
@@ -181,7 +174,6 @@ class OrderTest {
                 Double.POSITIVE_INFINITY,
                 ITEM_COUNT,
                 CREATED_AT,
-                PRIORITY,
                 1,
                 DATA_HASH
         );
@@ -201,7 +193,6 @@ class OrderTest {
                 ORDER_VALUE,
                 0,
                 CREATED_AT,
-                PRIORITY,
                 1,
                 DATA_HASH
         );
@@ -221,47 +212,6 @@ class OrderTest {
                 ORDER_VALUE,
                 -1,
                 CREATED_AT,
-                PRIORITY,
-                1,
-                DATA_HASH
-        );
-
-        fixture.givenNoPriorActivity()
-                .when(command)
-                .expectException(IllegalArgumentException.class)
-                .expectNoEvents();
-    }
-
-    @Test
-    void shouldRejectPriorityBelowMinimum() {
-        CreateOrderCommand command = new CreateOrderCommand(
-                ORDER_ID,
-                CUSTOMER_ID,
-                CATEGORY,
-                ORDER_VALUE,
-                ITEM_COUNT,
-                CREATED_AT,
-                0,
-                1,
-                DATA_HASH
-        );
-
-        fixture.givenNoPriorActivity()
-                .when(command)
-                .expectException(IllegalArgumentException.class)
-                .expectNoEvents();
-    }
-
-    @Test
-    void shouldRejectPriorityAboveMaximum() {
-        CreateOrderCommand command = new CreateOrderCommand(
-                ORDER_ID,
-                CUSTOMER_ID,
-                CATEGORY,
-                ORDER_VALUE,
-                ITEM_COUNT,
-                CREATED_AT,
-                4,
                 1,
                 DATA_HASH
         );
@@ -281,7 +231,6 @@ class OrderTest {
                 ORDER_VALUE,
                 ITEM_COUNT,
                 0L,
-                PRIORITY,
                 1,
                 DATA_HASH
         );
@@ -301,7 +250,6 @@ class OrderTest {
                 ORDER_VALUE,
                 ITEM_COUNT,
                 CREATED_AT,
-                PRIORITY,
                 -1,
                 DATA_HASH
         );
@@ -588,7 +536,6 @@ class OrderTest {
                 ORDER_VALUE,
                 ITEM_COUNT,
                 CREATED_AT,
-                PRIORITY,
                 1,
                 DATA_HASH
         );
@@ -602,7 +549,6 @@ class OrderTest {
                 ORDER_VALUE,
                 ITEM_COUNT,
                 CREATED_AT,
-                PRIORITY,
                 1,
                 DATA_HASH
         );

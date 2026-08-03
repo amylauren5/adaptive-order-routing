@@ -15,7 +15,6 @@ public class CreateOrderCommand {
     private final int itemCount;
 
     private final long timestamp;
-    private final int priority;
     private final int sequenceNumber;
 
     private final String dataHash;
@@ -26,7 +25,6 @@ public class CreateOrderCommand {
                               double orderValue,
                               int itemCount,
                               long timestamp,
-                              int priority,
                               int sequenceNumber,
                               String dataHash) {
         this.orderId = orderId;
@@ -35,7 +33,6 @@ public class CreateOrderCommand {
         this.orderValue = orderValue;
         this.itemCount = itemCount;
         this.timestamp = timestamp;
-        this.priority = priority;
         this.sequenceNumber = sequenceNumber;
         this.dataHash = dataHash;
     }
@@ -46,7 +43,6 @@ public class CreateOrderCommand {
     public double getOrderValue() { return orderValue; }
     public int getItemCount() { return itemCount; }
     public long getTimestamp() { return timestamp; }
-    public int getPriority() { return priority; }
     public int getSequenceNumber() { return sequenceNumber; }
     public String getDataHash() { return dataHash; }
 }

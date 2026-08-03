@@ -1,12 +1,12 @@
-package ict.um.orders.query_model.order_cached;
+package ict.um.orders.query_model;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "order_cached_view")
-public class OrderCachedView {
+@Table(name = "order_view")
+public class OrderView {
 
     @Id
     private String orderId;
@@ -16,21 +16,24 @@ public class OrderCachedView {
     private double orderValue;
     private int itemCount;
     private long lastEventTimestamp;
+    private int lastProcessedSequenceNumber;
 
-    public OrderCachedView() {}
+    public OrderView() {}
 
-    public OrderCachedView(String orderId,
-                           String status,
-                           String category,
-                           double orderValue,
-                           int itemCount,
-                           long lastEventTimestamp) {
+    public OrderView(String orderId,
+                     String status,
+                     String category,
+                     double orderValue,
+                     int itemCount,
+                     long lastEventTimestamp,
+                     int lastProcessedSequenceNumber) {
         this.orderId = orderId;
         this.status = status;
         this.category = category;
         this.orderValue = orderValue;
         this.itemCount = itemCount;
         this.lastEventTimestamp = lastEventTimestamp;
+        this.lastProcessedSequenceNumber = lastProcessedSequenceNumber;
     }
 
     public String getOrderId() { return orderId; }
@@ -39,7 +42,9 @@ public class OrderCachedView {
     public double getOrderValue() { return orderValue; }
     public int getItemCount() { return itemCount; }
     public long getLastEventTimestamp() { return lastEventTimestamp; }
+    public int getLastProcessedSequenceNumber() { return lastProcessedSequenceNumber; }
 
     public void setStatus(String status) { this.status = status; }
     public void setLastEventTimestamp(long ts) { this.lastEventTimestamp = ts; }
+    public void setLastProcessedSequenceNumber(int l) { this.lastProcessedSequenceNumber = l; }
 }

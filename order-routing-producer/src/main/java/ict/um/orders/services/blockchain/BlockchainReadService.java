@@ -48,7 +48,7 @@ public class BlockchainReadService {
                     new DefaultGasProvider()
             );
         } catch (Exception e) {
-            throw new RuntimeException("Failed to initialize OrderLifecycleContract", e);
+            throw new RuntimeException("Failed to initialise OrderLifecycleContract", e);
         }
     }
 

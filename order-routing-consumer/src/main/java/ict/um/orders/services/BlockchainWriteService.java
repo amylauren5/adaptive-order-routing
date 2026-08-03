@@ -1,8 +1,6 @@
 package ict.um.orders.services;
 
 import ict.um.orders.web3j_wrappers.OrderLifecycleContract;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -11,12 +9,9 @@ import org.web3j.protocol.Web3j;
 import org.web3j.protocol.http.HttpService;
 import org.web3j.tx.gas.DefaultGasProvider;
 
-import java.util.concurrent.CompletableFuture;
-
 @Service
 public class BlockchainWriteService {
 
-    private static final Logger logger = LoggerFactory.getLogger(BlockchainWriteService.class);
     private final OrderLifecycleContract orderLifecycleContract;
 
     @Autowired
@@ -25,98 +20,101 @@ public class BlockchainWriteService {
             @Value("${private.key}") String privateKey,
             @Value("${contract.address}") String contractAddress) {
 
-        Web3j web3j = Web3j.build(new HttpService(web3Provider));
+        if (web3Provider == null || web3Provider.isBlank()) {
+            throw new IllegalArgumentException("Web3 provider is not configured.");
+        }
 
         if (privateKey == null || privateKey.isEmpty()) {
             throw new IllegalArgumentException("Private key is not set. Please check your application.properties.");
         }
 
+        if (contractAddress == null || contractAddress.isBlank()) {
+            throw new IllegalArgumentException("Contract address is not configured.");
+        }
+
+        Web3j web3j = Web3j.build(new HttpService(web3Provider));
         Credentials credentials = Credentials.create(privateKey);
 
-        try {
-            this.orderLifecycleContract = OrderLifecycleContract.load(
+        this.orderLifecycleContract = OrderLifecycleContract.load(
                     contractAddress,
                     web3j,
                     credentials,
                     new DefaultGasProvider()
             );
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to load OrderLifecycleContract: ", e);
+    }
+
+    // CREATE ORDER
+    public String createOrderOnBlockchain(String orderId, String hash) {
+        try {
+            return orderLifecycleContract
+                    .send_createOrder(orderId, hash)
+                    .send()
+                    .getTransactionHash();
+        } catch (Exception exception) {
+            throw new IllegalStateException(
+                    "Failed to create order " + orderId + " on the blockchain",
+                    exception
+            );
         }
     }
 
-    // --- CREATE ORDER ---
-    public CompletableFuture<String> createOrderOnBlockchain(String orderId, String hash) {
-        CompletableFuture<String> future = new CompletableFuture<>();
-
-        orderLifecycleContract.send_createOrder(orderId, hash)
-                .sendAsync()
-                .thenAccept(receipt -> future.complete(receipt.getTransactionHash()))
-                .exceptionally(ex -> {
-                    future.completeExceptionally(ex);
-                    return null;
-                });
-
-        return future;
+    // APPROVE ORDER
+    public String approveOrderOnBlockchain(String orderId) {
+        try {
+            return orderLifecycleContract
+                    .send_approveOrder(orderId)
+                    .send()
+                    .getTransactionHash();
+        } catch (Exception exception) {
+            throw new IllegalStateException(
+                    "Failed to approve order " + orderId + " on the blockchain",
+                    exception
+            );
+        }
     }
 
-    // --- APPROVE ORDER ---
-    public CompletableFuture<String> approveOrderOnBlockchain(String orderId) {
-        CompletableFuture<String> future = new CompletableFuture<>();
-
-        orderLifecycleContract.send_approveOrder(orderId)
-                .sendAsync()
-                .thenAccept(receipt -> future.complete(receipt.getTransactionHash()))
-                .exceptionally(ex -> {
-                    future.completeExceptionally(ex);
-                    return null;
-                });
-
-        return future;
+    // DISPATCH ORDER
+    public String dispatchOrderOnBlockchain(String orderId) {
+        try {
+            return orderLifecycleContract
+                    .send_dispatchOrder(orderId)
+                    .send()
+                    .getTransactionHash();
+        } catch (Exception exception) {
+            throw new IllegalStateException(
+                    "Failed to dispatch order " + orderId + " on the blockchain",
+                    exception
+            );
+        }
     }
 
-    // --- DISPATCH ORDER ---
-    public CompletableFuture<String> dispatchOrderOnBlockchain(String orderId) {
-        CompletableFuture<String> future = new CompletableFuture<>();
-
-        orderLifecycleContract.send_dispatchOrder(orderId)
-                .sendAsync()
-                .thenAccept(receipt -> future.complete(receipt.getTransactionHash()))
-                .exceptionally(ex -> {
-                    future.completeExceptionally(ex);
-                    return null;
-                });
-
-        return future;
+    // COMPLETE ORDER
+    public String completeOrderOnBlockchain(String orderId) {
+        try {
+            return orderLifecycleContract
+                    .send_completeOrder(orderId)
+                    .send()
+                    .getTransactionHash();
+        } catch (Exception exception) {
+            throw new IllegalStateException(
+                    "Failed to complete order " + orderId + " on the blockchain",
+                    exception
+            );
+        }
     }
 
-    // --- COMPLETE ORDER ---
-    public CompletableFuture<String> completeOrderOnBlockchain(String orderId) {
-        CompletableFuture<String> future = new CompletableFuture<>();
-
-        orderLifecycleContract.send_completeOrder(orderId)
-                .sendAsync()
-                .thenAccept(receipt -> future.complete(receipt.getTransactionHash()))
-                .exceptionally(ex -> {
-                    future.completeExceptionally(ex);
-                    return null;
-                });
-
-        return future;
-    }
-
-    // --- CANCEL ORDER ---
-    public CompletableFuture<String> cancelOrderOnBlockchain(String orderId, String reason) {
-        CompletableFuture<String> future = new CompletableFuture<>();
-
-        orderLifecycleContract.send_cancelOrder(orderId, reason)
-                .sendAsync()
-                .thenAccept(receipt -> future.complete(receipt.getTransactionHash()))
-                .exceptionally(ex -> {
-                    future.completeExceptionally(ex);
-                    return null;
-                });
-
-        return future;
+    // CANCEL ORDER
+    public String cancelOrderOnBlockchain(String orderId, String reason) {
+        try {
+            return orderLifecycleContract
+                    .send_cancelOrder(orderId, reason)
+                    .send()
+                    .getTransactionHash();
+        } catch (Exception exception) {
+            throw new IllegalStateException(
+                    "Failed to cancel order " + orderId + " on the blockchain",
+                    exception
+            );
+        }
     }
 }

@@ -11,7 +11,6 @@ public class OrderCreatedEvent {
     private final double orderValue;
     private final int itemCount;
     private final long timestamp;
-    private final int priority;
     private final int sequenceNumber;
     private final String dataHash;
 
@@ -23,7 +22,6 @@ public class OrderCreatedEvent {
             @JsonProperty("orderValue") double orderValue,
             @JsonProperty("itemCount") int itemCount,
             @JsonProperty("timestamp") long timestamp,
-            @JsonProperty("priority") int priority,
             @JsonProperty("sequenceNumber") int sequenceNumber,
             @JsonProperty("dataHash") String dataHash) {
         this.orderId = orderId;
@@ -32,7 +30,6 @@ public class OrderCreatedEvent {
         this.orderValue = orderValue;
         this.itemCount = itemCount;
         this.timestamp = timestamp;
-        this.priority = priority;
         this.sequenceNumber = sequenceNumber;
         this.dataHash = dataHash;
     }
@@ -43,7 +40,6 @@ public class OrderCreatedEvent {
     public double getOrderValue() { return orderValue; }
     public int getItemCount() { return itemCount; }
     public long getTimestamp() { return timestamp; }
-    public int getPriority() { return priority; }
     public int getSequenceNumber() { return sequenceNumber; }
     public String getDataHash() { return dataHash; }
 }

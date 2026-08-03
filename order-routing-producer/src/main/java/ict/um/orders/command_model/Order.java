@@ -35,7 +35,6 @@ public class Order {
                 command.getOrderValue(),
                 command.getItemCount(),
                 command.getTimestamp(),
-                command.getPriority(),
                 command.getSequenceNumber(),
                 command.getDataHash()
         ));
@@ -150,12 +149,6 @@ public class Order {
         if (command.getItemCount() <= 0) {
             throw new IllegalArgumentException(
                     "Item count must be greater than zero"
-            );
-        }
-
-        if (command.getPriority() < 1 || command.getPriority() > 3) {
-            throw new IllegalArgumentException(
-                    "Priority must be between 1 and 3"
             );
         }
 

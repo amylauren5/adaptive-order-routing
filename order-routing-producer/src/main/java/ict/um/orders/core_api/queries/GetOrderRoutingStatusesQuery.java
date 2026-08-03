@@ -1,9 +1,9 @@
 package ict.um.orders.core_api.queries;
 
-public class GetCachedOrderStatusesQuery {
+public class GetOrderRoutingStatusesQuery {
     private final String orderId;
 
-    public GetCachedOrderStatusesQuery(String orderId) {
+    public GetOrderRoutingStatusesQuery(String orderId) {
         this.orderId = orderId;
     }
 

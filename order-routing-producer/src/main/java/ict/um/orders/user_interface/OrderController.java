@@ -45,7 +45,6 @@ public class OrderController {
                 orderValue,
                 itemCount,
                 now,
-                1,      // priority
                 0,      // sequence number
                 ""      // placeholder hash
         );
@@ -61,7 +60,6 @@ public class OrderController {
                 itemCount,
                 now,
                 1,
-                0,
                 dataHash
         );
 

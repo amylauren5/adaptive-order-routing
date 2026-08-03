@@ -9,17 +9,17 @@ import org.springframework.context.annotation.Configuration;
 public class AmqpConfig {
 
     @Bean
-    public Queue highPriorityQueue() {
-        return new Queue(QueueNames.HIGH, true);
+    public Queue processingQueue1() {
+        return new Queue(QueueNames.QUEUE_1, true);
     }
 
     @Bean
-    public Queue mediumPriorityQueue() {
-        return new Queue(QueueNames.MEDIUM, true);
+    public Queue processingQueue2() {
+        return new Queue(QueueNames.QUEUE_2, true);
     }
 
     @Bean
-    public Queue lowPriorityQueue() {
-        return new Queue(QueueNames.LOW, true);
+    public Queue processingQueue3() {
+        return new Queue(QueueNames.QUEUE_3, true);
     }
 }

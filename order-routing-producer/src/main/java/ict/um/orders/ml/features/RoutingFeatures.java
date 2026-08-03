@@ -7,7 +7,7 @@ import java.util.Map;
 public class RoutingFeatures {
 
     public static final List<String> QUEUE_ORDER =
-            List.of("high", "medium", "low");
+            List.of("queue1", "queue2", "queue3");
 
     private final Map<String, QueueFeatures> queues;
 

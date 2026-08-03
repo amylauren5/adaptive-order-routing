@@ -1,9 +1,9 @@
-package ict.um.orders.query_model.order_cached;
+package ict.um.orders.query_model;
 
 import ict.um.orders.core_api.enums.OrderStatus;
 import ict.um.orders.core_api.events.*;
 import ict.um.orders.core_api.messaging.RoutedEventType;
-import ict.um.orders.core_api.queries.GetCacheByOrderIdQuery;
+import ict.um.orders.core_api.queries.GetOrderRoutingByOrderIdQuery;
 import ict.um.orders.routing.OrderRoutingContext;
 import ict.um.orders.services.messaging.RabbitEventPublisher;
 import ict.um.orders.services.routing.RoutingService;
@@ -13,16 +13,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
-public class OrderCachedProjector {
+public class OrderRoutingProjector {
 
-    private final OrderCachedViewRepository repository;
+    private final OrderRoutingViewRepository repository;
     private final RabbitEventPublisher publisher;
     private final RoutingService routingService;
 
     @Autowired
-    public OrderCachedProjector(OrderCachedViewRepository repository,
-                                RabbitEventPublisher publisher,
-                                RoutingService routingService) {
+    public OrderRoutingProjector(OrderRoutingViewRepository repository,
+                                 RabbitEventPublisher publisher,
+                                 RoutingService routingService) {
         this.repository = repository;
         this.publisher = publisher;
         this.routingService = routingService;
@@ -32,13 +32,16 @@ public class OrderCachedProjector {
 
     @EventHandler
     public void on(OrderCreatedEvent event) {
-        OrderCachedView view = new OrderCachedView(
+        OrderRoutingView view = new OrderRoutingView(
                 event.getOrderId(),
+                event.getCustomerId(),
                 OrderStatus.CREATED.name(),
                 event.getCategory(),
                 event.getOrderValue(),
                 event.getItemCount(),
-                event.getTimestamp()
+                event.getTimestamp(),
+                event.getTimestamp(),
+                event.getSequenceNumber()
         );
         repository.save(view);
 
@@ -53,9 +56,10 @@ public class OrderCachedProjector {
 
     @EventHandler
     public void on(OrderApprovedEvent event) {
-        OrderCachedView view = repository.findById(event.getOrderId()).orElseThrow();
+        OrderRoutingView view = repository.findById(event.getOrderId()).orElseThrow();
         view.setStatus(OrderStatus.APPROVED.name());
         view.setLastEventTimestamp(event.getTimestamp());
+        view.setLastSequenceNumber(event.getSequenceNumber());
         repository.save(view);
 
         routeAndPublish(
@@ -69,9 +73,10 @@ public class OrderCachedProjector {
 
     @EventHandler
     public void on(OrderDispatchedEvent event) {
-        OrderCachedView view = repository.findById(event.getOrderId()).orElseThrow();
+        OrderRoutingView view = repository.findById(event.getOrderId()).orElseThrow();
         view.setStatus(OrderStatus.DISPATCHED.name());
         view.setLastEventTimestamp(event.getTimestamp());
+        view.setLastSequenceNumber(event.getSequenceNumber());
         repository.save(view);
 
         routeAndPublish(
@@ -85,9 +90,10 @@ public class OrderCachedProjector {
 
     @EventHandler
     public void on(OrderCompletedEvent event) {
-        OrderCachedView view = repository.findById(event.getOrderId()).orElseThrow();
+        OrderRoutingView view = repository.findById(event.getOrderId()).orElseThrow();
         view.setStatus(OrderStatus.COMPLETED.name());
         view.setLastEventTimestamp(event.getTimestamp());
+        view.setLastSequenceNumber(event.getSequenceNumber());
         repository.save(view);
 
         routeAndPublish(
@@ -101,9 +107,10 @@ public class OrderCachedProjector {
 
     @EventHandler
     public void on(OrderCancelledEvent event) {
-        OrderCachedView view = repository.findById(event.getOrderId()).orElseThrow();
+        OrderRoutingView view = repository.findById(event.getOrderId()).orElseThrow();
         view.setStatus(OrderStatus.CANCELLED.name());
         view.setLastEventTimestamp(event.getTimestamp());
+        view.setLastSequenceNumber(event.getSequenceNumber());
         repository.save(view);
 
         routeAndPublish(
@@ -117,17 +124,17 @@ public class OrderCachedProjector {
 
     // --- QUERY HANDLER ---
     @QueryHandler
-    public OrderCachedView handle(GetCacheByOrderIdQuery query) {
+    public OrderRoutingView handle(GetOrderRoutingByOrderIdQuery query) {
         return repository.findById(query.getOrderId())
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "Cached order not found: " + query.getOrderId()
+                        "Order not found: " + query.getOrderId()
                 ));
     }
 
     private void routeAndPublish(
             Object event,
             RoutedEventType eventType,
-            OrderCachedView view,
+            OrderRoutingView view,
             OrderStatus status,
             long timestamp
     ) {

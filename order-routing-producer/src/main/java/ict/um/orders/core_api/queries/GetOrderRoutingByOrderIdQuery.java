@@ -1,9 +1,9 @@
 package ict.um.orders.core_api.queries;
 
-public class GetSubmittedByOrderIdQuery {
+public class GetOrderRoutingByOrderIdQuery {
     private final String orderId;
 
-    public GetSubmittedByOrderIdQuery(String orderId) {
+    public GetOrderRoutingByOrderIdQuery(String orderId) {
         this.orderId = orderId;
     }
 

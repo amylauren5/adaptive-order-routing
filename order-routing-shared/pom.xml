@@ -9,6 +9,9 @@
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
+    <name>Adaptive Order Routing Shared</name>
+    <description>Case study application focusing on the ecommerce domain</description>
+
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>

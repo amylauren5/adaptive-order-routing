@@ -1,10 +1,9 @@
 package ict.um.orders.services.blockchain;
 
 import ict.um.orders.core_api.commands.CreateOrderCommand;
-import ict.um.orders.query_model.order_submitted.OrderSubmittedView;
+import ict.um.orders.query_model.OrderRoutingView;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -12,101 +11,150 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.Map;
-import java.util.HashMap;
 import java.util.concurrent.CompletableFuture;
 
 @Service
 public class DataHashingService {
 
-    private static final Logger logger = LoggerFactory.getLogger(DataHashingService.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(DataHashingService.class);
 
     private final BlockchainReadService blockchainReadService;
 
-    @Autowired
-    public DataHashingService(BlockchainReadService blockchainReadService) {
+    public DataHashingService(
+            BlockchainReadService blockchainReadService
+    ) {
         this.blockchainReadService = blockchainReadService;
     }
 
     // --- HASH FOR CREATE ORDER ---
+
     public String computeInitialDataHash(CreateOrderCommand command) {
-
-        String data =
-                command.getOrderId() +
-                        command.getCustomerId() +
-                        command.getCategory() +
-                        command.getOrderValue() +
-                        command.getItemCount() +
-                        command.getTimestamp() +
-                        command.getPriority() +
-                        command.getSequenceNumber();
+        String data = buildHashInput(
+                command.getOrderId(),
+                command.getCustomerId(),
+                command.getCategory(),
+                command.getOrderValue(),
+                command.getItemCount(),
+                command.getTimestamp()
+        );
 
         return hashString(data);
     }
 
-    // --- HASH FOR PROJECTOR RECONSTRUCTION ---
-    public String reconstructDataHash(OrderSubmittedView view) {
+    // --- HASH RECONSTRUCTION FROM OFF-CHAIN VIEW ---
 
-        String data =
-                view.getOrderId() +
-                        view.getCustomerId() +
-                        view.getCategory() +
-                        view.getOrderValue() +
-                        view.getItemCount() +
-                        view.getTimestamp() +
-                        view.getPriority() +
-                        view.getSequenceNumber();
+    public String reconstructDataHash(OrderRoutingView view) {
+        String data = buildHashInput(
+                view.getOrderId(),
+                view.getCustomerId(),
+                view.getCategory(),
+                view.getOrderValue(),
+                view.getItemCount(),
+                view.getCreatedAt()
+        );
 
         return hashString(data);
     }
 
-    // --- VERIFY HASH AGAINST BLOCKCHAIN ---
-    public CompletableFuture<Map<String, Boolean>> verifyDataHash(OrderSubmittedView view) {
+    // --- VERIFY OFF-CHAIN DATA AGAINST BLOCKCHAIN ---
 
-        String reconstructed = reconstructDataHash(view);
+    public CompletableFuture<Map<String, Boolean>> verifyDataHash(
+            OrderRoutingView view
+    ) {
+        String reconstructedHash = reconstructDataHash(view);
 
-        return blockchainReadService.getOrderHash(view.getOrderId())
+        return blockchainReadService
+                .getOrderHash(view.getOrderId())
                 .thenApply(blockchainHash -> {
+                    if (blockchainHash == null || blockchainHash.isBlank()) {
+                        logger.warn(
+                                "Blockchain hash missing for order {}",
+                                view.getOrderId()
+                        );
 
-                    Map<String, Boolean> result = new HashMap<>();
-
-                    if (blockchainHash == null || blockchainHash.isEmpty()) {
-                        logger.warn("Blockchain hash empty for order {}", view.getOrderId());
-                        result.put("blockchain_hash_missing", false);
-                        return result;
+                        return Map.of(
+                                "blockchain_hash_missing",
+                                false
+                        );
                     }
 
-                    boolean matches = blockchainHash.equals(reconstructed);
+                    boolean matches =
+                            blockchainHash.equalsIgnoreCase(reconstructedHash);
 
                     if (matches) {
-                        logger.info("Hash match for order {}", view.getOrderId());
+                        logger.info(
+                                "Hash match for order {}",
+                                view.getOrderId()
+                        );
                     } else {
-                        logger.warn("Hash mismatch for order {}: reconstructed={}, blockchain={}",
-                                view.getOrderId(), reconstructed, blockchainHash);
+                        logger.warn(
+                                "Hash mismatch for order {}: "
+                                        + "reconstructed={}, blockchain={}",
+                                view.getOrderId(),
+                                reconstructedHash,
+                                blockchainHash
+                        );
                     }
 
-                    result.put("hash_match", matches);
-                    return result;
+                    return Map.of("hash_match", matches);
                 })
-                .exceptionally(ex -> {
-                    logger.error("Error verifying hash for order {}: {}", view.getOrderId(), ex.getMessage());
-                    Map<String, Boolean> error = new HashMap<>();
-                    error.put("error", false);
-                    return error;
+                .exceptionally(exception -> {
+                    logger.error(
+                            "Failed to verify hash for order {}",
+                            view.getOrderId(),
+                            exception
+                    );
+
+                    return Map.of("verification_error", false);
                 });
     }
 
+    // --- HASH INPUT ---
+
+    private String buildHashInput(
+            String orderId,
+            String customerId,
+            String category,
+            double orderValue,
+            int itemCount,
+            long timestamp
+    ) {
+        /*
+         * Delimiters prevent ambiguous concatenation, for example:
+         * "12" + "3" and "1" + "23".
+         */
+        return String.join(
+                "|",
+                orderId,
+                customerId,
+                category,
+                Double.toString(orderValue),
+                Integer.toString(itemCount),
+                Long.toString(timestamp)
+        );
+    }
+
     // --- INTERNAL HASHING ---
+
     private String hashString(String input) {
         return hashBytes(input.getBytes(StandardCharsets.UTF_8));
     }
 
     private String hashBytes(byte[] input) {
         try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            MessageDigest digest =
+                    MessageDigest.getInstance("SHA-256");
+
             byte[] hash = digest.digest(input);
+
             return HexFormat.of().formatHex(hash);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 not available", e);
+
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException(
+                    "SHA-256 is not available",
+                    exception
+            );
         }
     }
 }

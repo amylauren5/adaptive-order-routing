@@ -97,7 +97,6 @@ public class WorkloadGenerator {
                 itemCount,
                 createdAt,
                 1,
-                0,
                 ""
         );
 
@@ -112,7 +111,6 @@ public class WorkloadGenerator {
                 itemCount,
                 createdAt,
                 1,
-                0,
                 dataHash
         );
 
