@@ -5,11 +5,13 @@ import ict.um.orders.ml.features.QueueFeatures;
 import ict.um.orders.ml.features.RoutingFeatures;
 import ict.um.orders.ml.metrics.RoutingMetricsCollector;
 import ict.um.orders.routing.OrderRoutingContext;
+import ict.um.orders.routing.RoutingDecision;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
@@ -30,7 +32,7 @@ public class ShortestQueueRoutingService implements RoutingService {
     }
 
     @Override
-    public String route(OrderRoutingContext context) {
+    public RoutingDecision route(OrderRoutingContext context) {
         RoutingFeatures features = metricsCollector.collectAll();
 
         double shortestQueueLength = Double.POSITIVE_INFINITY;
@@ -46,7 +48,12 @@ public class ShortestQueueRoutingService implements RoutingService {
                 );
             }
 
-            shortestQueueLength = getShortestQueueLength(shortestQueueLength, tiedQueues, queueKey, queueFeatures);
+            shortestQueueLength = updateShortestQueues(
+                    shortestQueueLength,
+                    tiedQueues,
+                    queueKey,
+                    queueFeatures
+            );
         }
 
         if (tiedQueues.isEmpty()) {
@@ -55,10 +62,20 @@ public class ShortestQueueRoutingService implements RoutingService {
             );
         }
 
-        return toRabbitQueue(selectRoundRobin(tiedQueues));
-    }
+        String selectedQueue =
+                toRabbitQueue(selectRoundRobin(tiedQueues));
 
-    static double getShortestQueueLength(double shortestQueueLength, List<String> tiedQueues, String queueKey, QueueFeatures queueFeatures) {
+        return new RoutingDecision(
+                UUID.randomUUID().toString(),
+                selectedQueue
+        );
+    }
+    private double updateShortestQueues(
+            double shortestQueueLength,
+            List<String> tiedQueues,
+            String queueKey,
+            QueueFeatures queueFeatures
+    ) {
         double queueLength = queueFeatures.queueLength();
 
         if (!Double.isFinite(queueLength) || queueLength < 0.0) {
@@ -69,12 +86,15 @@ public class ShortestQueueRoutingService implements RoutingService {
                 Double.compare(queueLength, shortestQueueLength);
 
         if (comparison < 0) {
-            shortestQueueLength = queueLength;
             tiedQueues.clear();
             tiedQueues.add(queueKey);
-        } else if (comparison == 0) {
+            return queueLength;
+        }
+
+        if (comparison == 0) {
             tiedQueues.add(queueKey);
         }
+
         return shortestQueueLength;
     }
 

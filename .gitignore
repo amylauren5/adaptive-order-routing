@@ -3,6 +3,7 @@ HELP.md
 /bin/
 !.mvn/wrapper/maven-wrapper.jar
 scripts/.env
+/data/
 
 ### STS ###
 .apt_generated

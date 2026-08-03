@@ -5,6 +5,7 @@ import ict.um.orders.core_api.events.*;
 import ict.um.orders.core_api.messaging.RoutedEventType;
 import ict.um.orders.core_api.queries.GetOrderRoutingByOrderIdQuery;
 import ict.um.orders.routing.OrderRoutingContext;
+import ict.um.orders.routing.RoutingDecision;
 import ict.um.orders.services.messaging.RabbitEventPublisher;
 import ict.um.orders.services.routing.RoutingService;
 import org.axonframework.eventhandling.EventHandler;
@@ -147,8 +148,8 @@ public class OrderRoutingProjector {
                 timestamp
         );
 
-        String queue = routingService.route(context);
+        RoutingDecision decision = routingService.route(context);
 
-        publisher.publish(queue, eventType, event);
+        publisher.publish(decision, eventType, event);
     }
 }

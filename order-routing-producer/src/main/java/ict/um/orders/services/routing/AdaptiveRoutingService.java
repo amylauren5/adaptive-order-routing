@@ -4,8 +4,11 @@ import ict.um.orders.ml.features.RoutingFeatures;
 import ict.um.orders.ml.metrics.RoutingMetricsCollector;
 import ict.um.orders.ml.model.WorkloadPredictionModel;
 import ict.um.orders.routing.OrderRoutingContext;
+import ict.um.orders.routing.RoutingDecision;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
+
+import java.util.UUID;
 
 @Service
 @ConditionalOnProperty(
@@ -26,14 +29,23 @@ public class AdaptiveRoutingService implements RoutingService {
     }
 
     @Override
-    public String route(OrderRoutingContext context) {
+    public RoutingDecision route(OrderRoutingContext context) {
         try {
-            RoutingFeatures features = metricsCollector.collectAll();
-            return predictionModel.predict(features);
-        } catch (Exception e) {
+            RoutingFeatures features =
+                    metricsCollector.collectAll();
+
+            String selectedQueue =
+                    predictionModel.predict(features);
+
+            return new RoutingDecision(
+                    UUID.randomUUID().toString(),
+                    selectedQueue
+            );
+
+        } catch (Exception exception) {
             throw new IllegalStateException(
                     "Failed to perform ML-based routing",
-                    e
+                    exception
             );
         }
     }

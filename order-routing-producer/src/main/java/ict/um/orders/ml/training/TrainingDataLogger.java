@@ -2,6 +2,7 @@ package ict.um.orders.ml.training;
 
 import ict.um.orders.ml.features.QueueFeatures;
 import ict.um.orders.ml.features.RoutingFeatures;
+import ict.um.orders.routing.OrderRoutingContext;
 import jakarta.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -13,96 +14,196 @@ import java.io.IOException;
 
 @Component
 @ConditionalOnProperty(
-        name = "routing.strategy",
-        havingValue = "training"
+        name = "training.collection-enabled",
+        havingValue = "true"
 )
 public class TrainingDataLogger {
 
     private final FileWriter writer;
 
     public TrainingDataLogger(
-            @Value("${training.data-path:training-data.csv}") String path
+            @Value(
+                    "${training.pending-data-path:"
+                            + "data/pending-routing-observations.csv}"
+            )
+            String path
     ) throws IOException {
         File file = new File(path);
 
         File parent = file.getParentFile();
-        if (parent != null) {
-            parent.mkdirs();
+        if (parent != null && !parent.exists() && !parent.mkdirs()) {
+            throw new IOException(
+                    "Failed to create training-data directory: "
+                            + parent.getAbsolutePath()
+            );
         }
 
-        boolean newFile = !file.exists() || file.length() == 0;
+        boolean newFile =
+                !file.exists() || file.length() == 0L;
+
         this.writer = new FileWriter(file, true);
 
         if (newFile) {
-            writer.write(
-                    "high_queue_length,"
-                            + "high_consumer_throughput,"
-                            + "high_arrival_interval,"
-                            + "high_utilisation,"
-                            + "high_backlog_growth,"
-                            + "high_tail_latency,"
-                            + "medium_queue_length,"
-                            + "medium_consumer_throughput,"
-                            + "medium_arrival_interval,"
-                            + "medium_utilisation,"
-                            + "medium_backlog_growth,"
-                            + "medium_tail_latency,"
-                            + "low_queue_length,"
-                            + "low_consumer_throughput,"
-                            + "low_arrival_interval,"
-                            + "low_utilisation,"
-                            + "low_backlog_growth,"
-                            + "low_tail_latency,"
-                            + "target_queue"
-                            + System.lineSeparator()
-            );
-
-            writer.flush();
+            writeHeader();
         }
     }
 
-    public synchronized void log(
+    public synchronized void logPending(
+            String routingDecisionId,
+            OrderRoutingContext context,
             RoutingFeatures features,
-            String chosenRoute
+            String selectedQueue
     ) {
+        validate(
+                routingDecisionId,
+                context,
+                features,
+                selectedQueue
+        );
+
         try {
             StringBuilder row = new StringBuilder();
 
-            for (String queueName : RoutingFeatures.QUEUE_ORDER) {
-                QueueFeatures queue = features.queues().get(queueName);
+            append(row, routingDecisionId);
+            append(row, context.orderId());
+            append(row, context.status().name());
+            append(row, context.category());
+            append(row, context.orderValue());
+            append(row, context.itemCount());
+            append(row, context.timestamp());
+            append(row, selectedQueue);
 
-                if (queue == null) {
+            for (String queueKey : RoutingFeatures.QUEUE_ORDER) {
+                QueueFeatures queueFeatures =
+                        features.queues().get(queueKey);
+
+                if (queueFeatures == null) {
                     throw new IllegalStateException(
-                            "Missing features for queue: " + queueName
+                            "Missing features for queue: " + queueKey
                     );
                 }
 
-                for (double value : queue.toVector()) {
-                    row.append(value).append(',');
+                for (double value : queueFeatures.toVector()) {
+                    append(row, value);
                 }
             }
 
-            row.append(chosenRoute)
-                    .append(System.lineSeparator());
+            removeTrailingComma(row);
+            row.append(System.lineSeparator());
 
             writer.write(row.toString());
             writer.flush();
 
         } catch (IOException exception) {
             throw new IllegalStateException(
-                    "Failed to write routing training data",
+                    "Failed to write pending routing observation",
                     exception
             );
         }
     }
 
+    private void writeHeader() throws IOException {
+        writer.write(
+                "routing_decision_id,"
+                        + "order_id,"
+                        + "order_status,"
+                        + "category,"
+                        + "order_value,"
+                        + "item_count,"
+                        + "event_timestamp,"
+                        + "selected_queue,"
+                        + queueHeaders("queue1")
+                        + queueHeaders("queue2")
+                        + queueHeaders("queue3")
+        );
+
+        writer.write(System.lineSeparator());
+        writer.flush();
+    }
+
+    private String queueHeaders(String queueName) {
+        return queueName + "_length,"
+                + queueName + "_consumer_throughput,"
+                + queueName + "_arrival_interval,"
+                + queueName + "_utilisation,"
+                + queueName + "_backlog_growth,"
+                + queueName + "_estimated_delay"
+                + ("queue3".equals(queueName) ? "" : ",");
+    }
+
+    private void validate(
+            String routingDecisionId,
+            OrderRoutingContext context,
+            RoutingFeatures features,
+            String selectedQueue
+    ) {
+        if (routingDecisionId == null
+                || routingDecisionId.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Routing decision ID is required"
+            );
+        }
+
+        if (context == null) {
+            throw new IllegalArgumentException(
+                    "Order routing context is required"
+            );
+        }
+
+        if (features == null || features.queues() == null) {
+            throw new IllegalArgumentException(
+                    "Routing features are required"
+            );
+        }
+
+        if (selectedQueue == null || selectedQueue.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Selected queue is required"
+            );
+        }
+    }
+
+    private void append(
+            StringBuilder row,
+            Object value
+    ) {
+        row.append(escapeCsv(value))
+                .append(',');
+    }
+
+    private String escapeCsv(Object value) {
+        if (value == null) {
+            return "";
+        }
+
+        String text = value.toString();
+
+        if (text.contains(",")
+                || text.contains("\"")
+                || text.contains("\n")
+                || text.contains("\r")) {
+            return "\""
+                    + text.replace("\"", "\"\"")
+                    + "\"";
+        }
+
+        return text;
+    }
+
+    private void removeTrailingComma(StringBuilder row) {
+        if (!row.isEmpty()
+                && row.charAt(row.length() - 1) == ',') {
+            row.deleteCharAt(row.length() - 1);
+        }
+    }
+
     @PreDestroy
-    public void close() {
+    public synchronized void close() {
         try {
             writer.close();
         } catch (IOException exception) {
             throw new IllegalStateException(
-                    "Failed to close routing training-data file",
+                    "Failed to close pending training-data file",
                     exception
             );
         }

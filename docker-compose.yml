@@ -27,6 +27,8 @@ services:
     container_name: consumer-app
     env_file:
       - ./scripts/.env
+    volumes:
+      - ./data:/app/data
     networks:
       - ict3500-dissertation_rabbit-network
     restart: always

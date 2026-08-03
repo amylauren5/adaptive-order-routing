@@ -1,5 +1,6 @@
 package ict.um.orders.ml.model;
 
+import ict.um.orders.core_api.config.QueueNames;
 import ict.um.orders.ml.features.RoutingFeatures;
 import ml.dmlc.xgboost4j.java.Booster;
 import ml.dmlc.xgboost4j.java.DMatrix;
@@ -15,7 +16,9 @@ public class WorkloadPredictionModel {
         this.booster = booster;
     }
 
-    public String predict(RoutingFeatures features) throws XGBoostError {
+    public String predict(RoutingFeatures features)
+            throws XGBoostError {
+
         double[] vector = features.toVector();
 
         if (vector.length != EXPECTED_FEATURE_COUNT) {
@@ -35,16 +38,21 @@ public class WorkloadPredictionModel {
                 Float.NaN
         );
 
-        float[][] predictions = booster.predict(matrix);
+        try {
+            float[][] predictions = booster.predict(matrix);
 
-        if (predictions.length == 0
-                || predictions[0].length == 0) {
-            throw new IllegalStateException(
-                    "XGBoost returned no prediction"
-            );
+            if (predictions.length == 0
+                    || predictions[0].length == 0) {
+                throw new IllegalStateException(
+                        "XGBoost returned no prediction"
+                );
+            }
+
+            return mapPrediction(predictions[0]);
+
+        } finally {
+            matrix.dispose();
         }
-
-        return mapPrediction(predictions[0]);
     }
 
     private float[] toFloatArray(double[] values) {
@@ -81,9 +89,9 @@ public class WorkloadPredictionModel {
 
     private String mapClass(int predictedClass) {
         return switch (predictedClass) {
-            case 0 -> "priority.low";
-            case 1 -> "priority.medium";
-            case 2 -> "priority.high";
+            case 0 -> QueueNames.QUEUE_1;
+            case 1 -> QueueNames.QUEUE_2;
+            case 2 -> QueueNames.QUEUE_3;
             default -> throw new IllegalStateException(
                     "Unknown predicted class: " + predictedClass
             );

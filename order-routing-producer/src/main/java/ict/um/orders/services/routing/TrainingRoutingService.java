@@ -5,10 +5,12 @@ import ict.um.orders.ml.features.RoutingFeatures;
 import ict.um.orders.ml.metrics.RoutingMetricsCollector;
 import ict.um.orders.ml.training.TrainingDataLogger;
 import ict.um.orders.routing.OrderRoutingContext;
+import ict.um.orders.routing.RoutingDecision;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
@@ -37,26 +39,31 @@ public class TrainingRoutingService implements RoutingService {
     }
 
     @Override
-    public String route(OrderRoutingContext context) {
+    public RoutingDecision route(OrderRoutingContext context) {
         /*
-         * Capture only metrics available before the routing decision.
-         * These become the model input features.
+         * Capture all input features before the routing decision
+         * to avoid temporal leakage.
          */
         RoutingFeatures features = metricsCollector.collectAll();
 
-        /*
-         * Controlled round-robin assignment provides observations from
-         * every processing queue without using Little's Law as a teacher.
-         */
         String selectedQueue = selectNextQueue();
+        String routingDecisionId = UUID.randomUUID().toString();
 
         /*
-         * This record is incomplete until the consumer reports the
-         * realised waiting time for the routed event.
+         * Store an incomplete observation. The consumer will later
+         * complete it with the realised queue waiting time.
          */
-        trainingLogger.log(features, selectedQueue);
+        trainingLogger.logPending(
+                routingDecisionId,
+                context,
+                features,
+                selectedQueue
+        );
 
-        return selectedQueue;
+        return new RoutingDecision(
+                routingDecisionId,
+                selectedQueue
+        );
     }
 
     private String selectNextQueue() {

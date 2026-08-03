@@ -13,6 +13,7 @@ import ict.um.orders.exceptions.OutOfOrderEventException;
 import ict.um.orders.query_model.OrderView;
 import ict.um.orders.query_model.OrderViewRepository;
 import ict.um.orders.services.BlockchainWriteService;
+import ict.um.orders.training.TrainingOutcomeLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.ImmediateRequeueAmqpException;
@@ -32,15 +33,18 @@ public class EventListener {
     private final ObjectMapper objectMapper;
     private final OrderViewRepository orderViewRepository;
     private final BlockchainWriteService blockchainWriteService;
+    private final TrainingOutcomeLogger trainingOutcomeLogger;
 
     public EventListener(
             ObjectMapper objectMapper,
             BlockchainWriteService blockchainWriteService,
-            OrderViewRepository orderViewRepository
+            OrderViewRepository orderViewRepository,
+            TrainingOutcomeLogger trainingOutcomeLogger
     ) {
         this.objectMapper = objectMapper;
         this.blockchainWriteService = blockchainWriteService;
         this.orderViewRepository = orderViewRepository;
+        this.trainingOutcomeLogger = trainingOutcomeLogger;
     }
 
     // ------------------- Queue listeners -------------------
@@ -70,7 +74,18 @@ public class EventListener {
                             RoutedEventMessage.class
                     );
 
+            long consumerStartedAt =
+                    System.currentTimeMillis();
+
+
             validate(routedMessage);
+
+            trainingOutcomeLogger.logOutcome(
+                    routedMessage.getRoutingDecisionId(),
+                    routedMessage.getSelectedQueue(),
+                    routedMessage.getPublishedAt(),
+                    consumerStartedAt
+            );
 
             logger.info(
                     "Received {} from queue {}",

@@ -5,11 +5,13 @@ import ict.um.orders.ml.features.QueueFeatures;
 import ict.um.orders.ml.features.RoutingFeatures;
 import ict.um.orders.ml.metrics.RoutingMetricsCollector;
 import ict.um.orders.routing.OrderRoutingContext;
+import ict.um.orders.routing.RoutingDecision;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
@@ -29,9 +31,14 @@ public class LittleLawRoutingService implements RoutingService {
     }
 
     @Override
-    public String route(OrderRoutingContext context) {
+    public RoutingDecision route(OrderRoutingContext context) {
         RoutingFeatures features = metricsCollector.collectAll();
-        return chooseQueue(features);
+        String selectedQueue = chooseQueue(features);
+
+        return new RoutingDecision(
+                UUID.randomUUID().toString(),
+                selectedQueue
+        );
     }
 
     String chooseQueue(RoutingFeatures features) {
@@ -69,17 +76,11 @@ public class LittleLawRoutingService implements RoutingService {
             }
         }
 
-        /*
-         * If throughput is unavailable or zero for every non-empty
-         * queue, Little's Law cannot produce a usable estimate.
-         */
         if (!finiteEstimateAvailable || tiedQueues.isEmpty()) {
             return chooseShortestQueue(features);
         }
 
-        return toRabbitQueue(
-                selectRoundRobin(tiedQueues)
-        );
+        return toRabbitQueue(selectRoundRobin(tiedQueues));
     }
 
     private double calculateExpectedDelay(
@@ -137,14 +138,10 @@ public class LittleLawRoutingService implements RoutingService {
             );
         }
 
-        return toRabbitQueue(
-                selectRoundRobin(tiedQueues)
-        );
+        return toRabbitQueue(selectRoundRobin(tiedQueues));
     }
 
-    private void validateFeatures(
-            RoutingFeatures features
-    ) {
+    private void validateFeatures(RoutingFeatures features) {
         if (features == null || features.queues() == null) {
             throw new IllegalArgumentException(
                     "Routing features and queue features must not be null"
@@ -168,9 +165,7 @@ public class LittleLawRoutingService implements RoutingService {
         return queueFeatures;
     }
 
-    private String selectRoundRobin(
-            List<String> queueKeys
-    ) {
+    private String selectRoundRobin(List<String> queueKeys) {
         int index = Math.floorMod(
                 tieIndex.getAndIncrement(),
                 queueKeys.size()

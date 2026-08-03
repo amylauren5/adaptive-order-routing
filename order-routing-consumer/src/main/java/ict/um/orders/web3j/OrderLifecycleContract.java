@@ -1,4 +1,4 @@
-package ict.um.orders.web3j_wrappers;
+package ict.um.orders.web3j;
 
 import io.reactivex.Flowable;
 import java.math.BigInteger;
