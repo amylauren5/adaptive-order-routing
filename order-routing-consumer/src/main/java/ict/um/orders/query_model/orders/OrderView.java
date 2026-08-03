@@ -1,4 +1,4 @@
-package ict.um.orders.query_model;
+package ict.um.orders.query_model.orders;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;

@@ -44,7 +44,10 @@ public class BlockchainWriteService {
     }
 
     // CREATE ORDER
-    public String createOrderOnBlockchain(String orderId, String hash) {
+    public synchronized String createOrderOnBlockchain(
+            String orderId,
+            String hash
+    ) {
         try {
             return orderLifecycleContract
                     .send_createOrder(orderId, hash)
@@ -59,7 +62,7 @@ public class BlockchainWriteService {
     }
 
     // APPROVE ORDER
-    public String approveOrderOnBlockchain(String orderId) {
+    public synchronized String approveOrderOnBlockchain(String orderId) {
         try {
             return orderLifecycleContract
                     .send_approveOrder(orderId)
@@ -74,7 +77,7 @@ public class BlockchainWriteService {
     }
 
     // DISPATCH ORDER
-    public String dispatchOrderOnBlockchain(String orderId) {
+    public synchronized String dispatchOrderOnBlockchain(String orderId) {
         try {
             return orderLifecycleContract
                     .send_dispatchOrder(orderId)
@@ -89,7 +92,7 @@ public class BlockchainWriteService {
     }
 
     // COMPLETE ORDER
-    public String completeOrderOnBlockchain(String orderId) {
+    public synchronized String completeOrderOnBlockchain(String orderId) {
         try {
             return orderLifecycleContract
                     .send_completeOrder(orderId)
@@ -104,7 +107,7 @@ public class BlockchainWriteService {
     }
 
     // CANCEL ORDER
-    public String cancelOrderOnBlockchain(String orderId, String reason) {
+    public synchronized String cancelOrderOnBlockchain(String orderId, String reason) {
         try {
             return orderLifecycleContract
                     .send_cancelOrder(orderId, reason)

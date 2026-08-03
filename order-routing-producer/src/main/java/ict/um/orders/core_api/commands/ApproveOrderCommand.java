@@ -6,16 +6,13 @@ public class ApproveOrderCommand {
     @TargetAggregateIdentifier
     private final String orderId;
     private final long timestamp;
-    private final int sequenceNumber;
 
-    public ApproveOrderCommand(String orderId, long timestamp, int sequenceNumber) {
+    public ApproveOrderCommand(String orderId, long timestamp) {
         this.orderId = orderId;
         this.timestamp = timestamp;
-        this.sequenceNumber = sequenceNumber;
     }
 
     public String getOrderId() { return orderId; }
     public long getTimestamp() { return timestamp; }
-    public int getSequenceNumber() { return sequenceNumber; }
 }
 

@@ -6,7 +6,7 @@ public record QueueFeatures(
         double arrivalInterval,
         double utilisation,
         double backlogGrowth,
-        double tailLatency
+        double estimatedDelay
 ) {
     public double[] toVector() {
         return new double[]{
@@ -15,7 +15,7 @@ public record QueueFeatures(
                 arrivalInterval,
                 utilisation,
                 backlogGrowth,
-                tailLatency
+                estimatedDelay
         };
     }
 }

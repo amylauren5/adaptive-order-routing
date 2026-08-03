@@ -19,6 +19,7 @@ public class Order {
     private String category;
     private double orderValue;
     private int itemCount;
+    private int sequenceNumber;
 
     protected Order() {
         // Required by Axon
@@ -35,7 +36,7 @@ public class Order {
                 command.getOrderValue(),
                 command.getItemCount(),
                 command.getTimestamp(),
-                command.getSequenceNumber(),
+                0,
                 command.getDataHash()
         ));
     }
@@ -47,7 +48,7 @@ public class Order {
         AggregateLifecycle.apply(new OrderApprovedEvent(
                 command.getOrderId(),
                 command.getTimestamp(),
-                command.getSequenceNumber()
+                sequenceNumber + 1
         ));
     }
 
@@ -58,7 +59,7 @@ public class Order {
         AggregateLifecycle.apply(new OrderDispatchedEvent(
                 command.getOrderId(),
                 command.getTimestamp(),
-                command.getSequenceNumber()
+                sequenceNumber + 1
         ));
     }
 
@@ -69,7 +70,7 @@ public class Order {
         AggregateLifecycle.apply(new OrderCompletedEvent(
                 command.getOrderId(),
                 command.getTimestamp(),
-                command.getSequenceNumber()
+                sequenceNumber + 1
         ));
     }
 
@@ -88,7 +89,7 @@ public class Order {
         AggregateLifecycle.apply(new OrderCancelledEvent(
                 command.getOrderId(),
                 command.getTimestamp(),
-                command.getSequenceNumber(),
+                sequenceNumber + 1,
                 command.getReason()
         ));
     }
@@ -100,26 +101,31 @@ public class Order {
         category = event.getCategory();
         orderValue = event.getOrderValue();
         itemCount = event.getItemCount();
+        sequenceNumber = event.getSequenceNumber();
     }
 
     @EventSourcingHandler
     public void on(OrderApprovedEvent event) {
         status = OrderStatus.APPROVED;
+        sequenceNumber = event.getSequenceNumber();
     }
 
     @EventSourcingHandler
     public void on(OrderDispatchedEvent event) {
         status = OrderStatus.DISPATCHED;
+        sequenceNumber = event.getSequenceNumber();
     }
 
     @EventSourcingHandler
     public void on(OrderCompletedEvent event) {
         status = OrderStatus.COMPLETED;
+        sequenceNumber = event.getSequenceNumber();
     }
 
     @EventSourcingHandler
     public void on(OrderCancelledEvent event) {
         status = OrderStatus.CANCELLED;
+        sequenceNumber = event.getSequenceNumber();
     }
 
     private void requireStatus(
@@ -155,12 +161,6 @@ public class Order {
         if (command.getTimestamp() <= 0) {
             throw new IllegalArgumentException(
                     "Timestamp must be positive"
-            );
-        }
-
-        if (command.getSequenceNumber() < 0) {
-            throw new IllegalArgumentException(
-                    "Sequence number cannot be negative"
             );
         }
     }

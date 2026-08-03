@@ -2,21 +2,16 @@ package ict.um.orders.core_api.commands;
 
 import org.axonframework.modelling.command.TargetAggregateIdentifier;
 
-import java.math.BigDecimal;
-
 public class CreateOrderCommand {
 
     @TargetAggregateIdentifier
     private final String orderId;
-    private final String customerId;
 
+    private final String customerId;
     private final String category;
     private final double orderValue;
     private final int itemCount;
-
     private final long timestamp;
-    private final int sequenceNumber;
-
     private final String dataHash;
 
     public CreateOrderCommand(String orderId,
@@ -25,7 +20,6 @@ public class CreateOrderCommand {
                               double orderValue,
                               int itemCount,
                               long timestamp,
-                              int sequenceNumber,
                               String dataHash) {
         this.orderId = orderId;
         this.customerId = customerId;
@@ -33,7 +27,6 @@ public class CreateOrderCommand {
         this.orderValue = orderValue;
         this.itemCount = itemCount;
         this.timestamp = timestamp;
-        this.sequenceNumber = sequenceNumber;
         this.dataHash = dataHash;
     }
 
@@ -43,6 +36,5 @@ public class CreateOrderCommand {
     public double getOrderValue() { return orderValue; }
     public int getItemCount() { return itemCount; }
     public long getTimestamp() { return timestamp; }
-    public int getSequenceNumber() { return sequenceNumber; }
     public String getDataHash() { return dataHash; }
 }

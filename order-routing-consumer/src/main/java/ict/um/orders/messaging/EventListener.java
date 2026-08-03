@@ -10,13 +10,14 @@ import ict.um.orders.core_api.events.OrderCreatedEvent;
 import ict.um.orders.core_api.events.OrderDispatchedEvent;
 import ict.um.orders.core_api.messaging.RoutedEventMessage;
 import ict.um.orders.exceptions.OutOfOrderEventException;
-import ict.um.orders.query_model.OrderView;
-import ict.um.orders.query_model.OrderViewRepository;
+import ict.um.orders.query_model.orders.OrderView;
+import ict.um.orders.query_model.orders.OrderViewRepository;
+import ict.um.orders.query_model.pending_orders.PendingOrdersRepository;
+import ict.um.orders.query_model.pending_orders.PendingOrdersView;
 import ict.um.orders.services.BlockchainWriteService;
 import ict.um.orders.training.TrainingOutcomeLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.amqp.ImmediateRequeueAmqpException;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
@@ -32,6 +33,7 @@ public class EventListener {
 
     private final ObjectMapper objectMapper;
     private final OrderViewRepository orderViewRepository;
+    private final PendingOrdersRepository pendingOrdersRepository;
     private final BlockchainWriteService blockchainWriteService;
     private final TrainingOutcomeLogger trainingOutcomeLogger;
 
@@ -39,11 +41,13 @@ public class EventListener {
             ObjectMapper objectMapper,
             BlockchainWriteService blockchainWriteService,
             OrderViewRepository orderViewRepository,
+            PendingOrdersRepository pendingOrdersRepository,
             TrainingOutcomeLogger trainingOutcomeLogger
     ) {
         this.objectMapper = objectMapper;
         this.blockchainWriteService = blockchainWriteService;
         this.orderViewRepository = orderViewRepository;
+        this.pendingOrdersRepository = pendingOrdersRepository;
         this.trainingOutcomeLogger = trainingOutcomeLogger;
     }
 
@@ -64,80 +68,11 @@ public class EventListener {
         receive(message, QUEUE_3);
     }
 
-    // ------------------- Envelope dispatch -------------------
+    // ------------------- Message processing -------------------
 
     private void receive(String message, String queue) {
         try {
-            RoutedEventMessage routedMessage =
-                    objectMapper.readValue(
-                            message,
-                            RoutedEventMessage.class
-                    );
-
-            long consumerStartedAt =
-                    System.currentTimeMillis();
-
-
-            validate(routedMessage);
-
-            trainingOutcomeLogger.logOutcome(
-                    routedMessage.getRoutingDecisionId(),
-                    routedMessage.getSelectedQueue(),
-                    routedMessage.getPublishedAt(),
-                    consumerStartedAt
-            );
-
-            logger.info(
-                    "Received {} from queue {}",
-                    routedMessage.getEventType(),
-                    queue
-            );
-
-            switch (routedMessage.getEventType()) {
-                case ORDER_CREATED ->
-                        handleOrderCreated(
-                                routedMessage.getPayload()
-                        );
-
-                case ORDER_APPROVED ->
-                        handleOrderApproved(
-                                routedMessage.getPayload()
-                        );
-
-                case ORDER_DISPATCHED ->
-                        handleOrderDispatched(
-                                routedMessage.getPayload()
-                        );
-
-                case ORDER_COMPLETED ->
-                        handleOrderCompleted(
-                                routedMessage.getPayload()
-                        );
-
-                case ORDER_CANCELLED ->
-                        handleOrderCancelled(
-                                routedMessage.getPayload()
-                        );
-            }
-
-            logger.info(
-                    "Successfully processed {} from queue {}",
-                    routedMessage.getEventType(),
-                    queue
-            );
-
-        } catch (OutOfOrderEventException exception) {
-            logger.warn(
-                    "Requeueing out-of-order message from queue {}: {}",
-                    queue,
-                    exception.getMessage()
-            );
-
-            throw new ImmediateRequeueAmqpException(
-                    exception.getMessage(),
-                    exception
-            );
-
+            processMessage(message, queue);
         } catch (Exception exception) {
             logger.error(
                     "Failed to process message from queue {}: {}",
@@ -153,7 +88,99 @@ public class EventListener {
         }
     }
 
+    private boolean processMessage(
+            String message,
+            String queue
+    ) throws JsonProcessingException {
+
+        RoutedEventMessage routedMessage =
+                objectMapper.readValue(
+                        message,
+                        RoutedEventMessage.class
+                );
+
+        validate(routedMessage);
+
+        long consumerStartedAt = System.currentTimeMillis();
+
+        logger.info(
+                "Received {} from queue {}",
+                routedMessage.getEventType(),
+                queue
+        );
+
+        boolean processed = switch (routedMessage.getEventType()) {
+            case ORDER_CREATED ->
+                    handleOrderCreated(routedMessage);
+
+            case ORDER_APPROVED ->
+                    handleOrderApproved(
+                            routedMessage,
+                            queue,
+                            message
+                    );
+
+            case ORDER_DISPATCHED ->
+                    handleOrderDispatched(
+                            routedMessage,
+                            queue,
+                            message
+                    );
+
+            case ORDER_COMPLETED ->
+                    handleOrderCompleted(
+                            routedMessage,
+                            queue,
+                            message
+                    );
+
+            case ORDER_CANCELLED ->
+                    handleOrderCancelled(
+                            routedMessage,
+                            queue,
+                            message
+                    );
+        };
+
+        if (processed) {
+            trainingOutcomeLogger.logOutcome(
+                    routedMessage.getRoutingDecisionId(),
+                    routedMessage.getSelectedQueue(),
+                    routedMessage.getPublishedAt(),
+                    consumerStartedAt
+            );
+
+            logger.info(
+                    "Successfully processed {} from queue {}",
+                    routedMessage.getEventType(),
+                    queue
+            );
+        }
+
+        return processed;
+    }
+
     private void validate(RoutedEventMessage routedMessage) {
+        if (routedMessage.getRoutingDecisionId() == null
+                || routedMessage.getRoutingDecisionId().isBlank()) {
+            throw new IllegalArgumentException(
+                    "Routed message does not contain a routing decision ID"
+            );
+        }
+
+        if (routedMessage.getSelectedQueue() == null
+                || routedMessage.getSelectedQueue().isBlank()) {
+            throw new IllegalArgumentException(
+                    "Routed message does not contain a selected queue"
+            );
+        }
+
+        if (routedMessage.getPublishedAt() <= 0L) {
+            throw new IllegalArgumentException(
+                    "Routed message contains an invalid publication timestamp"
+            );
+        }
+
         if (routedMessage.getEventType() == null) {
             throw new IllegalArgumentException(
                     "Routed message does not contain an event type"
@@ -170,12 +197,13 @@ public class EventListener {
 
     // ------------------- Event handlers -------------------
 
-    private void handleOrderCreated(String payload)
-            throws JsonProcessingException {
+    private boolean handleOrderCreated(
+            RoutedEventMessage routedMessage
+    ) throws JsonProcessingException {
 
         OrderCreatedEvent event =
                 objectMapper.readValue(
-                        payload,
+                        routedMessage.getPayload(),
                         OrderCreatedEvent.class
                 );
 
@@ -188,15 +216,17 @@ public class EventListener {
         }
 
         /*
-         * Prevent duplicate blockchain writes if the message is
-         * redelivered after the view has already been persisted.
+         * A redelivered creation event must not submit the same
+         * blockchain transaction again.
          */
         if (orderViewRepository.existsById(event.getOrderId())) {
             logger.info(
-                    "Order {} has already been processed",
+                    "Ignoring already processed creation event "
+                            + "for order {}",
                     event.getOrderId()
             );
-            return;
+
+            return false;
         }
 
         String transactionHash =
@@ -220,21 +250,38 @@ public class EventListener {
                 event.getOrderId(),
                 transactionHash
         );
+
+        processNextPendingEvent(
+                event.getOrderId(),
+                event.getSequenceNumber() + 1
+        );
+
+        return true;
     }
 
-    private void handleOrderApproved(String payload)
-            throws JsonProcessingException {
+    private boolean handleOrderApproved(
+            RoutedEventMessage routedMessage,
+            String queue,
+            String originalMessage
+    ) throws JsonProcessingException {
 
         OrderApprovedEvent event =
                 objectMapper.readValue(
-                        payload,
+                        routedMessage.getPayload(),
                         OrderApprovedEvent.class
                 );
 
-        OrderView view = requireExpectedSequence(
+        OrderView view = validateLifecycleEvent(
+                routedMessage,
+                queue,
+                originalMessage,
                 event.getOrderId(),
                 event.getSequenceNumber()
         );
+
+        if (view == null) {
+            return false;
+        }
 
         String transactionHash =
                 blockchainWriteService.approveOrderOnBlockchain(
@@ -253,21 +300,38 @@ public class EventListener {
                 event.getOrderId(),
                 transactionHash
         );
+
+        processNextPendingEvent(
+                event.getOrderId(),
+                event.getSequenceNumber() + 1
+        );
+
+        return true;
     }
 
-    private void handleOrderDispatched(String payload)
-            throws JsonProcessingException {
+    private boolean handleOrderDispatched(
+            RoutedEventMessage routedMessage,
+            String queue,
+            String originalMessage
+    ) throws JsonProcessingException {
 
         OrderDispatchedEvent event =
                 objectMapper.readValue(
-                        payload,
+                        routedMessage.getPayload(),
                         OrderDispatchedEvent.class
                 );
 
-        OrderView view = requireExpectedSequence(
+        OrderView view = validateLifecycleEvent(
+                routedMessage,
+                queue,
+                originalMessage,
                 event.getOrderId(),
                 event.getSequenceNumber()
         );
+
+        if (view == null) {
+            return false;
+        }
 
         String transactionHash =
                 blockchainWriteService.dispatchOrderOnBlockchain(
@@ -286,21 +350,38 @@ public class EventListener {
                 event.getOrderId(),
                 transactionHash
         );
+
+        processNextPendingEvent(
+                event.getOrderId(),
+                event.getSequenceNumber() + 1
+        );
+
+        return true;
     }
 
-    private void handleOrderCompleted(String payload)
-            throws JsonProcessingException {
+    private boolean handleOrderCompleted(
+            RoutedEventMessage routedMessage,
+            String queue,
+            String originalMessage
+    ) throws JsonProcessingException {
 
         OrderCompletedEvent event =
                 objectMapper.readValue(
-                        payload,
+                        routedMessage.getPayload(),
                         OrderCompletedEvent.class
                 );
 
-        OrderView view = requireExpectedSequence(
+        OrderView view = validateLifecycleEvent(
+                routedMessage,
+                queue,
+                originalMessage,
                 event.getOrderId(),
                 event.getSequenceNumber()
         );
+
+        if (view == null) {
+            return false;
+        }
 
         String transactionHash =
                 blockchainWriteService.completeOrderOnBlockchain(
@@ -319,21 +400,33 @@ public class EventListener {
                 event.getOrderId(),
                 transactionHash
         );
+
+        return true;
     }
 
-    private void handleOrderCancelled(String payload)
-            throws JsonProcessingException {
+    private boolean handleOrderCancelled(
+            RoutedEventMessage routedMessage,
+            String queue,
+            String originalMessage
+    ) throws JsonProcessingException {
 
         OrderCancelledEvent event =
                 objectMapper.readValue(
-                        payload,
+                        routedMessage.getPayload(),
                         OrderCancelledEvent.class
                 );
 
-        OrderView view = requireExpectedSequence(
+        OrderView view = validateLifecycleEvent(
+                routedMessage,
+                queue,
+                originalMessage,
                 event.getOrderId(),
                 event.getSequenceNumber()
         );
+
+        if (view == null) {
+            return false;
+        }
 
         String transactionHash =
                 blockchainWriteService.cancelOrderOnBlockchain(
@@ -353,6 +446,8 @@ public class EventListener {
                 event.getOrderId(),
                 transactionHash
         );
+
+        return true;
     }
 
     // ------------------- Confirmed order view updates -------------------
@@ -410,28 +505,191 @@ public class EventListener {
 
     // ------------------- Sequence validation -------------------
 
-    private OrderView requireExpectedSequence(
+    private SequenceCheck checkSequence(
             String orderId,
             int receivedSequenceNumber
     ) {
         OrderView view = orderViewRepository.findById(orderId)
-                .orElseThrow(() -> new OutOfOrderEventException(
-                        orderId,
-                        0,
-                        receivedSequenceNumber
-                ));
+                .orElse(null);
+
+        /*
+         * If the creation event has not completed yet, every later
+         * lifecycle event is considered a future event.
+         */
+        if (view == null) {
+            return new SequenceCheck(
+                    SequenceState.FUTURE,
+                    null
+            );
+        }
 
         int expectedSequenceNumber =
                 view.getLastProcessedSequenceNumber() + 1;
 
-        if (receivedSequenceNumber != expectedSequenceNumber) {
-            throw new OutOfOrderEventException(
-                    orderId,
-                    expectedSequenceNumber,
-                    receivedSequenceNumber
+        if (receivedSequenceNumber < expectedSequenceNumber) {
+            return new SequenceCheck(
+                    SequenceState.ALREADY_PROCESSED,
+                    view
             );
         }
 
-        return view;
+        if (receivedSequenceNumber > expectedSequenceNumber) {
+            return new SequenceCheck(
+                    SequenceState.FUTURE,
+                    view
+            );
+        }
+
+        return new SequenceCheck(
+                SequenceState.EXPECTED,
+                view
+        );
+    }
+
+    private void logDuplicate(
+            String orderId,
+            int sequenceNumber
+    ) {
+        logger.info(
+                "Ignoring already processed event for order {} "
+                        + "at sequence {}",
+                orderId,
+                sequenceNumber
+        );
+    }
+
+    // ------------------- Pending-event resequencing -------------------
+
+    private void savePendingEvent(
+            RoutedEventMessage routedMessage,
+            String orderId,
+            int sequenceNumber,
+            String queue,
+            String originalMessage
+    ) {
+        if (pendingOrdersRepository.existsById(
+                routedMessage.getRoutingDecisionId()
+        )) {
+            logger.debug(
+                    "Pending event {} is already buffered",
+                    routedMessage.getRoutingDecisionId()
+            );
+
+            return;
+        }
+
+        PendingOrdersView pendingEvent =
+                new PendingOrdersView(
+                        routedMessage.getRoutingDecisionId(),
+                        orderId,
+                        sequenceNumber,
+                        queue,
+                        originalMessage,
+                        System.currentTimeMillis()
+                );
+
+        pendingOrdersRepository.save(pendingEvent);
+
+        logger.info(
+                "Buffered future event for order {} at sequence {}",
+                orderId,
+                sequenceNumber
+        );
+    }
+
+    private void processNextPendingEvent(
+            String orderId,
+            int nextSequenceNumber
+    ) {
+        pendingOrdersRepository
+                .findByOrderIdAndSequenceNumber(
+                        orderId,
+                        nextSequenceNumber
+                )
+                .ifPresent(this::processPendingEvent);
+    }
+
+    private void processPendingEvent(
+            PendingOrdersView pendingEvent
+    ) {
+        try {
+            boolean processed = processMessage(
+                    pendingEvent.getMessagePayload(),
+                    pendingEvent.getQueueName()
+            );
+
+            if (processed) {
+                pendingOrdersRepository.delete(pendingEvent);
+
+                logger.info(
+                        "Processed and removed buffered event {} "
+                                + "for order {} at sequence {}",
+                        pendingEvent.getRoutingDecisionId(),
+                        pendingEvent.getOrderId(),
+                        pendingEvent.getSequenceNumber()
+                );
+            }
+
+        } catch (Exception exception) {
+            /*
+             * Keep the row so it can be retried later. Do not propagate
+             * this exception and cause the already completed predecessor
+             * event to be redelivered.
+             */
+            logger.error(
+                    "Failed to process buffered event {} for order {} "
+                            + "at sequence {}",
+                    pendingEvent.getRoutingDecisionId(),
+                    pendingEvent.getOrderId(),
+                    pendingEvent.getSequenceNumber(),
+                    exception
+            );
+        }
+    }
+
+    private enum SequenceState {
+        EXPECTED,
+        FUTURE,
+        ALREADY_PROCESSED
+    }
+
+    private record SequenceCheck(
+            SequenceState state,
+            OrderView view
+    ) {
+    }
+
+    private OrderView validateLifecycleEvent(
+            RoutedEventMessage routedMessage,
+            String queue,
+            String originalMessage,
+            String orderId,
+            int sequenceNumber
+    ) {
+        SequenceCheck sequenceCheck =
+                checkSequence(orderId, sequenceNumber);
+
+        if (sequenceCheck.state()
+                == SequenceState.ALREADY_PROCESSED) {
+
+            logDuplicate(orderId, sequenceNumber);
+            return null;
+        }
+
+        if (sequenceCheck.state()
+                == SequenceState.FUTURE) {
+
+            savePendingEvent(
+                    routedMessage,
+                    orderId,
+                    sequenceNumber,
+                    queue,
+                    originalMessage
+            );
+
+            return null;
+        }
+
+        return sequenceCheck.view();
     }
 }

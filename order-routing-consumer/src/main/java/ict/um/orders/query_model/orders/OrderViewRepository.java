@@ -1,4 +1,4 @@
-package ict.um.orders.query_model;
+package ict.um.orders.query_model.orders;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 

@@ -26,7 +26,7 @@ public class OrderController {
         this.dataHashingService = dataHashingService;
     }
 
-    // --- CREATE ORDER ---
+    // CREATE ORDER
     @PostMapping("/create/{customer}/{category}/{value}/{items}")
     public CompletableFuture<ResponseEntity<Object>> createOrder(
             @PathVariable("customer") String customerId,
@@ -45,7 +45,6 @@ public class OrderController {
                 orderValue,
                 itemCount,
                 now,
-                0,      // sequence number
                 ""      // placeholder hash
         );
 
@@ -59,7 +58,6 @@ public class OrderController {
                 orderValue,
                 itemCount,
                 now,
-                1,
                 dataHash
         );
 
@@ -69,15 +67,14 @@ public class OrderController {
                         HttpStatus.CREATED));
     }
 
-    // --- APPROVE ORDER ---
+    // APPROVE ORDER
     @PostMapping("/{orderId}/approve")
     public CompletableFuture<ResponseEntity<Object>> approveOrder(
             @PathVariable("orderId") String orderId) {
 
         ApproveOrderCommand command = new ApproveOrderCommand(
                 orderId,
-                System.currentTimeMillis(),
-                1
+                System.currentTimeMillis()
         );
 
         return commandGateway.send(command)
@@ -86,15 +83,14 @@ public class OrderController {
                         HttpStatus.OK));
     }
 
-    // --- DISPATCH ORDER ---
+    // DISPATCH ORDER
     @PostMapping("/{orderId}/dispatch")
     public CompletableFuture<ResponseEntity<Object>> dispatchOrder(
             @PathVariable("orderId") String orderId) {
 
         DispatchOrderCommand command = new DispatchOrderCommand(
                 orderId,
-                System.currentTimeMillis(),
-                2
+                System.currentTimeMillis()
         );
 
         return commandGateway.send(command)
@@ -103,15 +99,14 @@ public class OrderController {
                         HttpStatus.OK));
     }
 
-    // --- COMPLETE ORDER ---
+    // COMPLETE ORDER
     @PostMapping("/{orderId}/complete")
     public CompletableFuture<ResponseEntity<Object>> completeOrder(
             @PathVariable("orderId") String orderId) {
 
         CompleteOrderCommand command = new CompleteOrderCommand(
                 orderId,
-                System.currentTimeMillis(),
-                3
+                System.currentTimeMillis()
         );
 
         return commandGateway.send(command)
@@ -120,7 +115,7 @@ public class OrderController {
                         HttpStatus.OK));
     }
 
-    // --- CANCEL ORDER ---
+    // CANCEL ORDER
     @PostMapping("/{orderId}/cancel")
     public CompletableFuture<ResponseEntity<Object>> cancelOrder(
             @PathVariable("orderId") String orderId) {
@@ -128,7 +123,6 @@ public class OrderController {
         CancelOrderCommand command = new CancelOrderCommand(
                 orderId,
                 System.currentTimeMillis(),
-                1,
                 "manual_cancellation"
         );
 

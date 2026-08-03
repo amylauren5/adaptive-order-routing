@@ -29,7 +29,7 @@ public class OrderRoutingProjector {
         this.routingService = routingService;
     }
 
-    // --- EVENT HANDLERS ---
+    // EVENT HANDLERS
 
     @EventHandler
     public void on(OrderCreatedEvent event) {
@@ -123,7 +123,7 @@ public class OrderRoutingProjector {
         );
     }
 
-    // --- QUERY HANDLER ---
+    // QUERY HANDLER
     @QueryHandler
     public OrderRoutingView handle(GetOrderRoutingByOrderIdQuery query) {
         return repository.findById(query.getOrderId())
