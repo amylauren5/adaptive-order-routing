@@ -68,6 +68,7 @@ public class WorkloadGenerator {
             new AtomicInteger();
 
     private volatile long workloadStartedAt;
+    private volatile long generationStoppedAt;
 
     private volatile ScheduledFuture<?> nextOrderTask;
     private volatile ScheduledFuture<?> drainCheckTask;
@@ -78,6 +79,7 @@ public class WorkloadGenerator {
             TaskScheduler taskScheduler,
             RoutingMetricsCollector metricsCollector,
             JdbcTemplate jdbcTemplate,
+            @Value("${workload.random-seed}") long randomSeed,
             @Value("${workload.arrival-scale}") double arrivalScale,
             @Value("${workload.duration-seconds}") long durationSeconds
     ) {
@@ -102,6 +104,7 @@ public class WorkloadGenerator {
         this.workloadDurationMillis =
                 TimeUnit.SECONDS.toMillis(durationSeconds);
 
+        OlistSampling.setSeed(randomSeed);
         OlistSampling.setArrivalScale(arrivalScale);
     }
 
@@ -169,6 +172,8 @@ public class WorkloadGenerator {
             return;
         }
 
+        generationStoppedAt = System.currentTimeMillis();
+
         ScheduledFuture<?> task = nextOrderTask;
 
         if (task != null) {
@@ -225,24 +230,39 @@ public class WorkloadGenerator {
                 drainCheckTask = null;
             }
 
-            long elapsedMillis =
-                    System.currentTimeMillis() - workloadStartedAt;
+            long experimentCompletedAt =
+                    System.currentTimeMillis();
+
+            long totalElapsedMillis =
+                    experimentCompletedAt - workloadStartedAt;
+
+            long drainDurationMillis =
+                    experimentCompletedAt - generationStoppedAt;
 
             logger.info(
                     "\n==================================================\n"
                             + "Experiment completed successfully\n"
                             + "Generated orders  : {}\n"
-                            + "Generation window : {} seconds\n"
-                            + "Total elapsed time: {} ms\n"
+                            + "Generation period : {} ms ({} seconds)\n"
+                            + "Drain period      : {} ms ({} seconds)\n"
+                            + "Total duration    : {} ms ({} seconds)\n"
                             + "Active lifecycles : {}\n"
                             + "Pending events    : {}\n"
                             + "Queue backlog     : {}\n"
                             + "==================================================",
                     generatedOrderCount.get(),
+                    workloadDurationMillis,
                     TimeUnit.MILLISECONDS.toSeconds(
                             workloadDurationMillis
                     ),
-                    elapsedMillis,
+                    drainDurationMillis,
+                    TimeUnit.MILLISECONDS.toSeconds(
+                            drainDurationMillis
+                    ),
+                    totalElapsedMillis,
+                    TimeUnit.MILLISECONDS.toSeconds(
+                            totalElapsedMillis
+                    ),
                     state.activeLifecycles(),
                     state.pendingEvents(),
                     state.queueBacklog()

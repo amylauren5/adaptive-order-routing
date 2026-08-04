@@ -8,7 +8,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
-import java.io.File;
+import java.io.BufferedWriter;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.io.FileWriter;
 import java.io.IOException;
 
@@ -19,32 +23,42 @@ import java.io.IOException;
 )
 public class TrainingDataLogger {
 
-    private final FileWriter writer;
+    private final BufferedWriter writer;
 
     public TrainingDataLogger(
-            @Value(
-                    "${training.pending-data-path:"
-                            + "data/pending-routing-observations.csv}"
-            )
-            String path
+            @Value("${experiment.data-directory}") String dataDirectory,
+            @Value("${experiment.run-id}") String runId
     ) throws IOException {
-        File file = new File(path);
 
-        File parent = file.getParentFile();
-        if (parent != null && !parent.exists() && !parent.mkdirs()) {
-            throw new IOException(
-                    "Failed to create training-data directory: "
-                            + parent.getAbsolutePath()
+        validateRunId(runId);
+
+        Path runDirectory = Path.of(
+                dataDirectory,
+                runId
+        );
+
+        Files.createDirectories(runDirectory);
+
+        Path outputPath = runDirectory.resolve(
+                "pending-routing-observations.csv"
+        );
+
+        this.writer = Files.newBufferedWriter(
+                outputPath,
+                StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE_NEW,
+                StandardOpenOption.WRITE
+        );
+
+        writeHeader();
+    }
+
+    private void validateRunId(String runId) {
+        if (runId == null
+                || !runId.matches("[A-Za-z0-9._-]+")) {
+            throw new IllegalArgumentException(
+                    "Invalid experiment run ID: " + runId
             );
-        }
-
-        boolean newFile =
-                !file.exists() || file.length() == 0L;
-
-        this.writer = new FileWriter(file, true);
-
-        if (newFile) {
-            writeHeader();
         }
     }
 

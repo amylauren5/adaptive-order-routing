@@ -10,11 +10,19 @@ import ict.um.orders.services.messaging.RabbitEventPublisher;
 import ict.um.orders.services.routing.RoutingService;
 import org.axonframework.eventhandling.EventHandler;
 import org.axonframework.queryhandling.QueryHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
 @Component
 public class OrderRoutingProjector {
+
+    private static final Logger logger =
+            LoggerFactory.getLogger(OrderRoutingProjector.class);
 
     private final OrderRoutingViewRepository repository;
     private final RabbitEventPublisher publisher;
@@ -57,7 +65,13 @@ public class OrderRoutingProjector {
 
     @EventHandler
     public void on(OrderApprovedEvent event) {
-        OrderRoutingView view = repository.findById(event.getOrderId()).orElseThrow();
+        OrderRoutingView view = repository.findById(event.getOrderId())
+                .orElseThrow(() -> new IllegalStateException(
+                        "OrderRoutingView missing for order "
+                                + event.getOrderId()
+                                + " while processing "
+                                + event.getClass().getSimpleName()
+                ));
         view.setStatus(OrderStatus.APPROVED.name());
         view.setLastEventTimestamp(event.getTimestamp());
         view.setLastSequenceNumber(event.getSequenceNumber());
@@ -74,7 +88,13 @@ public class OrderRoutingProjector {
 
     @EventHandler
     public void on(OrderDispatchedEvent event) {
-        OrderRoutingView view = repository.findById(event.getOrderId()).orElseThrow();
+        OrderRoutingView view = repository.findById(event.getOrderId())
+                .orElseThrow(() -> new IllegalStateException(
+                        "OrderRoutingView missing for order "
+                                + event.getOrderId()
+                                + " while processing "
+                                + event.getClass().getSimpleName()
+                ));
         view.setStatus(OrderStatus.DISPATCHED.name());
         view.setLastEventTimestamp(event.getTimestamp());
         view.setLastSequenceNumber(event.getSequenceNumber());
@@ -91,7 +111,13 @@ public class OrderRoutingProjector {
 
     @EventHandler
     public void on(OrderCompletedEvent event) {
-        OrderRoutingView view = repository.findById(event.getOrderId()).orElseThrow();
+        OrderRoutingView view = repository.findById(event.getOrderId())
+                .orElseThrow(() -> new IllegalStateException(
+                        "OrderRoutingView missing for order "
+                                + event.getOrderId()
+                                + " while processing "
+                                + event.getClass().getSimpleName()
+                ));
         view.setStatus(OrderStatus.COMPLETED.name());
         view.setLastEventTimestamp(event.getTimestamp());
         view.setLastSequenceNumber(event.getSequenceNumber());
@@ -108,7 +134,13 @@ public class OrderRoutingProjector {
 
     @EventHandler
     public void on(OrderCancelledEvent event) {
-        OrderRoutingView view = repository.findById(event.getOrderId()).orElseThrow();
+        OrderRoutingView view = repository.findById(event.getOrderId())
+                .orElseThrow(() -> new IllegalStateException(
+                        "OrderRoutingView missing for order "
+                                + event.getOrderId()
+                                + " while processing "
+                                + event.getClass().getSimpleName()
+                ));
         view.setStatus(OrderStatus.CANCELLED.name());
         view.setLastEventTimestamp(event.getTimestamp());
         view.setLastSequenceNumber(event.getSequenceNumber());
@@ -148,8 +180,37 @@ public class OrderRoutingProjector {
                 timestamp
         );
 
-        RoutingDecision decision = routingService.route(context);
+        Runnable routingOperation = () -> {
+            try {
+                RoutingDecision decision =
+                        routingService.route(context);
 
-        publisher.publish(decision, eventType, event);
+                publisher.publish(
+                        decision,
+                        eventType,
+                        event
+                );
+            } catch (Exception exception) {
+                logger.error(
+                        "Failed to route and publish {} for order {}",
+                        eventType,
+                        view.getOrderId(),
+                        exception
+                );
+            }
+        };
+
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(
+                    new TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            routingOperation.run();
+                        }
+                    }
+            );
+        } else {
+            routingOperation.run();
+        }
     }
 }

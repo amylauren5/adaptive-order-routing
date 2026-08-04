@@ -5,8 +5,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
-import java.io.File;
-import java.io.FileWriter;
+import java.io.BufferedWriter;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.io.IOException;
 
 @Component
@@ -16,43 +19,46 @@ import java.io.IOException;
 )
 public class TrainingOutcomeLogger {
 
-    private final FileWriter writer;
+    private final BufferedWriter writer;
 
     public TrainingOutcomeLogger(
-            @Value(
-                    "${training.outcome-data-path:"
-                            + "data/routing-decision-outcomes.csv}"
-            )
-            String path
+            @Value("${experiment.data-directory}") String dataDirectory,
+            @Value("${experiment.run-id}") String runId
     ) throws IOException {
-        File file = new File(path);
 
-        File parent = file.getParentFile();
-        if (parent != null
-                && !parent.exists()
-                && !parent.mkdirs()) {
-            throw new IOException(
-                    "Failed to create outcome-data directory: "
-                            + parent.getAbsolutePath()
-            );
-        }
+        validateRunId(runId);
 
-        boolean newFile =
-                !file.exists() || file.length() == 0L;
+        Path runDirectory = Path.of(
+                dataDirectory,
+                runId
+        );
 
-        writer = new FileWriter(file, true);
+        Files.createDirectories(runDirectory);
 
-        if (newFile) {
-            writer.write(
-                    "routing_decision_id,"
-                            + "selected_queue,"
-                            + "published_at,"
-                            + "consumer_started_at,"
-                            + "realised_waiting_time_ms"
-                            + System.lineSeparator()
-            );
-            writer.flush();
-        }
+        Path outputPath = runDirectory.resolve(
+                "routing-decision-outcomes.csv"
+        );
+
+        this.writer = Files.newBufferedWriter(
+                outputPath,
+                StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE_NEW,
+                StandardOpenOption.WRITE
+        );
+
+        writeHeader();
+    }
+
+    private void writeHeader() throws IOException {
+        writer.write(
+                "routing_decision_id,"
+                        + "selected_queue,"
+                        + "published_at,"
+                        + "consumer_started_at,"
+                        + "realised_waiting_time_ms"
+        );
+        writer.newLine();
+        writer.flush();
     }
 
     public synchronized void logOutcome(
@@ -94,6 +100,15 @@ public class TrainingOutcomeLogger {
             throw new IllegalStateException(
                     "Failed to write routing outcome",
                     exception
+            );
+        }
+    }
+
+    private void validateRunId(String runId) {
+        if (runId == null
+                || !runId.matches("[A-Za-z0-9._-]+")) {
+            throw new IllegalArgumentException(
+                    "Invalid experiment run ID: " + runId
             );
         }
     }
