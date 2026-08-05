@@ -1,0 +1,224 @@
+from __future__ import annotations
+
+import argparse
+from pathlib import Path
+
+import pandas as pd
+
+
+OBSERVATIONS_FILE = "pending-routing-observations.csv"
+OUTCOMES_FILE = "routing-decision-outcomes.csv"
+OUTPUT_FILE = "training-dataset.csv"
+
+
+def validate_unique_ids(
+        dataframe: pd.DataFrame,
+        name: str,
+) -> None:
+    if "routing_decision_id" not in dataframe.columns:
+        raise ValueError(
+            f"{name} is missing routing_decision_id"
+        )
+
+    duplicate_count = dataframe["routing_decision_id"].duplicated().sum()
+
+    if duplicate_count > 0:
+        raise ValueError(
+            f"{name} contains {duplicate_count} duplicate "
+            "routing_decision_id values"
+        )
+
+
+def build_training_dataset(run_directory: Path) -> Path:
+    observations_path = run_directory / OBSERVATIONS_FILE
+    outcomes_path = run_directory / OUTCOMES_FILE
+    output_path = run_directory / OUTPUT_FILE
+
+    if not observations_path.exists():
+        raise FileNotFoundError(
+            f"Missing observations file: {observations_path}"
+        )
+
+    if not outcomes_path.exists():
+        raise FileNotFoundError(
+            f"Missing outcomes file: {outcomes_path}"
+        )
+
+    observations = pd.read_csv(observations_path)
+    outcomes = pd.read_csv(outcomes_path)
+
+    validate_unique_ids(
+        observations,
+        OBSERVATIONS_FILE,
+    )
+
+    validate_unique_ids(
+        outcomes,
+        OUTCOMES_FILE,
+    )
+
+    merged = observations.merge(
+        outcomes,
+        on="routing_decision_id",
+        how="outer",
+        suffixes=("_observation", "_outcome"),
+        indicator=True,
+        validate="one_to_one",
+    )
+
+    missing_outcomes = merged[
+        merged["_merge"] == "left_only"
+        ]
+
+    missing_observations = merged[
+        merged["_merge"] == "right_only"
+        ]
+
+    if not missing_outcomes.empty:
+        raise ValueError(
+            f"{len(missing_outcomes)} observations have no matching outcome"
+        )
+
+    if not missing_observations.empty:
+        raise ValueError(
+            f"{len(missing_observations)} outcomes have no matching observation"
+        )
+
+    if (
+            "selected_queue_observation" in merged.columns
+            and "selected_queue_outcome" in merged.columns
+    ):
+        mismatches = merged[
+            merged["selected_queue_observation"]
+            != merged["selected_queue_outcome"]
+            ]
+
+        if not mismatches.empty:
+            raise ValueError(
+                f"{len(mismatches)} rows have inconsistent selected queues"
+            )
+
+        merged = merged.drop(
+            columns=["selected_queue_outcome"]
+        ).rename(
+            columns={
+                "selected_queue_observation": "selected_queue"
+            }
+        )
+
+    merged = merged.drop(columns=["_merge"])
+
+    if "realised_waiting_time_ms" not in merged.columns:
+        raise ValueError(
+            "Merged dataset is missing realised_waiting_time_ms"
+        )
+
+    if merged["realised_waiting_time_ms"].isna().any():
+        raise ValueError(
+            "Merged dataset contains missing realised waiting times"
+        )
+
+    if (
+            merged["realised_waiting_time_ms"] < 0
+    ).any():
+        raise ValueError(
+            "Merged dataset contains negative realised waiting times"
+        )
+
+    if output_path.exists():
+        raise FileExistsError(
+            f"Output already exists: {output_path}"
+        )
+
+    merged.to_csv(
+        output_path,
+        index=False,
+    )
+
+    print(
+        f"[OK] {run_directory.name}: "
+        f"{len(observations)} observations, "
+        f"{len(outcomes)} outcomes, "
+        f"{len(merged)} joined rows"
+    )
+
+    print(f"     Written to: {output_path}")
+
+    return output_path
+
+
+def find_run_directories(
+        data_directory: Path,
+) -> list[Path]:
+    return sorted(
+        directory
+        for directory in data_directory.iterdir()
+        if directory.is_dir()
+        and (directory / OBSERVATIONS_FILE).exists()
+        and (directory / OUTCOMES_FILE).exists()
+    )
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Build one training dataset for each experiment run folder."
+        )
+    )
+
+    parser.add_argument(
+        "data_directory",
+        type=Path,
+        help="Directory containing experiment run folders",
+    )
+
+    parser.add_argument(
+        "--run-id",
+        help="Process only one experiment folder",
+    )
+
+    args = parser.parse_args()
+
+    data_directory = args.data_directory.resolve()
+
+    if not data_directory.is_dir():
+        raise NotADirectoryError(
+            f"Invalid data directory: {data_directory}"
+        )
+
+    if args.run_id:
+        run_directories = [
+            data_directory / args.run_id
+        ]
+    else:
+        run_directories = find_run_directories(
+            data_directory
+        )
+
+    if not run_directories:
+        raise RuntimeError(
+            "No experiment folders containing both CSV files were found"
+        )
+
+    failures = 0
+
+    for run_directory in run_directories:
+        try:
+            build_training_dataset(
+                run_directory
+            )
+        except Exception as exception:
+            failures += 1
+            print(
+                f"[FAILED] {run_directory.name}: "
+                f"{exception}"
+            )
+
+    if failures > 0:
+        raise SystemExit(
+            f"{failures} experiment dataset(s) failed"
+        )
+
+
+if __name__ == "__main__":
+    main()

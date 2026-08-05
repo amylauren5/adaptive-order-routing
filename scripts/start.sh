@@ -221,7 +221,7 @@ docker run --rm \
     --network "$NETWORK_NAME" \
     -v "$PROJECT_DIR:/scripts" \
     -v /var/run/docker.sock:/var/run/docker.sock \
-    -w /scripts/scripts \
+    -w /scripts/scripts/setup \
     docker:stable \
     sh ./extract-ganache.sh
 
@@ -260,14 +260,7 @@ if [ "$producer_status" != "running" ]; then
     exit 1
 fi
 
-RUN_ID=$(
-    grep '^EXPERIMENT_RUN_ID=' "$ENV_FILE" \
-        | tail -n 1 \
-        | cut -d= -f2-
-)
-
 echo ""
 echo "=================================================="
 echo "All services started successfully"
-echo "Experiment run ID: ${RUN_ID:-not configured}"
 echo "=================================================="

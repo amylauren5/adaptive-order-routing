@@ -49,7 +49,6 @@ services:
     hostname: axon-server
     environment:
       AXONIQ_AXONSERVER_STANDALONE: "true"
-      # axoniq_platform_authentication: ${AXONIQ_PLATFORM_AUTHENTICATION}
       axoniq_axonserver_hostname: axon-server
       axoniq_axonserver_internal_hostname: axon-server
     ports:

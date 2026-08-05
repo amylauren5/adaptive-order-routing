@@ -23,7 +23,9 @@ BEGIN;
 TRUNCATE TABLE
     pending_orders_view,
     order_view,
-    order_routing_view;
+    order_routing_view,
+    token_entry
+RESTART IDENTITY CASCADE;
 
 COMMIT;
 SQL

@@ -32,7 +32,7 @@ if [ -z "$address" ] || [ -z "$private_key" ]; then
 fi
 
 # Save to .env
-ENV_FILE="./.env"
+ENV_FILE="../.env"
 
 # Remove old entries (use sed -i with backup for Alpine compatibility)
 sed -i.bak '/^CONTRACT_ADDRESS=/d' "$ENV_FILE"
