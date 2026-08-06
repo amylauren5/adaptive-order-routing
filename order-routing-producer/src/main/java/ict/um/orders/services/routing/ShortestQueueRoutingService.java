@@ -8,7 +8,8 @@ import ict.um.orders.routing.OrderRoutingContext;
 import ict.um.orders.routing.RoutingDecision;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -21,6 +22,9 @@ import java.util.concurrent.atomic.AtomicInteger;
         matchIfMissing = true
 )
 public class ShortestQueueRoutingService implements RoutingService {
+
+    private static final Logger logger =
+            LoggerFactory.getLogger(ShortestQueueRoutingService.class);
 
     private final RoutingMetricsCollector metricsCollector;
     private final AtomicInteger tieIndex = new AtomicInteger();
@@ -64,6 +68,16 @@ public class ShortestQueueRoutingService implements RoutingService {
 
         String selectedQueue =
                 toRabbitQueue(selectRoundRobin(tiedQueues));
+
+        logger.info(
+                "Shortest-queue routing: orderId={}, queue1Length={}, "
+                        + "queue2Length={}, queue3Length={}, selectedQueue={}",
+                context.orderId(),
+                features.queues().get("queue1").queueLength(),
+                features.queues().get("queue2").queueLength(),
+                features.queues().get("queue3").queueLength(),
+                selectedQueue
+        );
 
         return new RoutingDecision(
                 UUID.randomUUID().toString(),

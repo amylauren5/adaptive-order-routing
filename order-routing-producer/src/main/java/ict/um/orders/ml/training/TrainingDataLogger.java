@@ -96,9 +96,12 @@ public class TrainingDataLogger {
                     );
                 }
 
-                for (double value : queueFeatures.toVector()) {
-                    append(row, value);
-                }
+                append(row, queueFeatures.queueLength());
+                append(row, queueFeatures.consumerThroughput());
+                append(row, queueFeatures.arrivalInterval());
+                append(row, queueFeatures.utilisation());
+                append(row, queueFeatures.backlogGrowth());
+                append(row, queueFeatures.estimatedDelay());
             }
 
             removeTrailingComma(row);

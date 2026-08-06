@@ -1,6 +1,5 @@
 package ict.um.orders.ml.features;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -27,12 +26,4 @@ public class RoutingFeatures {
         return queues;
     }
 
-    public double[] toVector() {
-        return QUEUE_ORDER.stream()
-                .map(queues::get)
-                .flatMapToDouble(queue ->
-                        Arrays.stream(queue.toVector())
-                )
-                .toArray();
-    }
 }

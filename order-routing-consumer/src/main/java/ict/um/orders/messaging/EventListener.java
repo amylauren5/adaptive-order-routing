@@ -21,6 +21,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
+
 import static ict.um.orders.core_api.config.QueueNames.QUEUE_1;
 import static ict.um.orders.core_api.config.QueueNames.QUEUE_2;
 import static ict.um.orders.core_api.config.QueueNames.QUEUE_3;
@@ -35,14 +37,14 @@ public class EventListener {
     private final OrderViewRepository orderViewRepository;
     private final PendingOrdersRepository pendingOrdersRepository;
     private final BlockchainWriteService blockchainWriteService;
-    private final TrainingOutcomeLogger trainingOutcomeLogger;
+    private final Optional<TrainingOutcomeLogger> trainingOutcomeLogger;
 
     public EventListener(
             ObjectMapper objectMapper,
             BlockchainWriteService blockchainWriteService,
             OrderViewRepository orderViewRepository,
             PendingOrdersRepository pendingOrdersRepository,
-            TrainingOutcomeLogger trainingOutcomeLogger
+            Optional<TrainingOutcomeLogger> trainingOutcomeLogger
     ) {
         this.objectMapper = objectMapper;
         this.blockchainWriteService = blockchainWriteService;
@@ -143,11 +145,14 @@ public class EventListener {
         };
 
         if (processed) {
-            trainingOutcomeLogger.logOutcome(
-                    routedMessage.getRoutingDecisionId(),
-                    routedMessage.getSelectedQueue(),
-                    routedMessage.getPublishedAt(),
-                    consumerStartedAt
+
+            trainingOutcomeLogger.ifPresent(logger ->
+                    logger.logOutcome(
+                            routedMessage.getRoutingDecisionId(),
+                            routedMessage.getSelectedQueue(),
+                            routedMessage.getPublishedAt(),
+                            consumerStartedAt
+                    )
             );
 
             logger.info(

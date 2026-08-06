@@ -8,7 +8,8 @@ import ict.um.orders.routing.OrderRoutingContext;
 import ict.um.orders.routing.RoutingDecision;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -20,6 +21,9 @@ import java.util.concurrent.atomic.AtomicInteger;
         havingValue = "little-law"
 )
 public class LittleLawRoutingService implements RoutingService {
+
+    private static final Logger logger =
+            LoggerFactory.getLogger(LittleLawRoutingService.class);
 
     private final RoutingMetricsCollector metricsCollector;
     private final AtomicInteger tieIndex = new AtomicInteger();
@@ -33,7 +37,36 @@ public class LittleLawRoutingService implements RoutingService {
     @Override
     public RoutingDecision route(OrderRoutingContext context) {
         RoutingFeatures features = metricsCollector.collectAll();
+
+        double queue1DelaySeconds =
+                calculateExpectedDelay(
+                        getQueueFeatures(features, "queue1")
+                );
+
+        double queue2DelaySeconds =
+                calculateExpectedDelay(
+                        getQueueFeatures(features, "queue2")
+                );
+
+        double queue3DelaySeconds =
+                calculateExpectedDelay(
+                        getQueueFeatures(features, "queue3")
+                );
+
         String selectedQueue = chooseQueue(features);
+
+        logger.info(
+                "Little-law routing: orderId={}, "
+                        + "queue1DelaySeconds={}, "
+                        + "queue2DelaySeconds={}, "
+                        + "queue3DelaySeconds={}, "
+                        + "selectedQueue={}",
+                context.orderId(),
+                queue1DelaySeconds,
+                queue2DelaySeconds,
+                queue3DelaySeconds,
+                selectedQueue
+        );
 
         return new RoutingDecision(
                 UUID.randomUUID().toString(),

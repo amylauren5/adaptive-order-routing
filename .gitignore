@@ -1,9 +1,21 @@
 HELP.md
+
+# Java
 /target/
 /bin/
 !.mvn/wrapper/maven-wrapper.jar
+
+# Python
+.venv/
 scripts/.env
+__pycache__/
+*.py[cod]
+
+# Generated data
 /data/
+
+# ML training outputs
+scripts/ml-training/output/
 
 ### STS ###
 .apt_generated
@@ -15,7 +27,7 @@ scripts/.env
 .sts4-cache
 
 ### IntelliJ IDEA ###
-.idea
+.idea/
 *.iws
 *.iml
 *.ipr

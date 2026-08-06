@@ -165,4 +165,21 @@ public class RoutingMetricsCollector {
                 0.0
         );
     }
+
+    private record QueueInfo(
+            int messages,
+            MessageStats message_stats
+    ) {
+    }
+
+    private record MessageStats(
+            RateDetails publish_details,
+            RateDetails ack_details
+    ) {
+    }
+
+    private record RateDetails(
+            double rate
+    ) {
+    }
 }

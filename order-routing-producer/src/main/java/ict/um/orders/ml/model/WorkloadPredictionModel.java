@@ -1,35 +1,36 @@
 package ict.um.orders.ml.model;
 
-import ict.um.orders.core_api.config.QueueNames;
-import ict.um.orders.ml.features.RoutingFeatures;
+import ict.um.orders.ml.features.RoutingCandidate;
 import ml.dmlc.xgboost4j.java.Booster;
 import ml.dmlc.xgboost4j.java.DMatrix;
 import ml.dmlc.xgboost4j.java.XGBoostError;
 
+import java.util.Objects;
+
 public class WorkloadPredictionModel {
 
-    private static final int EXPECTED_FEATURE_COUNT = 18;
-
     private final Booster booster;
+    private final ModelFeatureEncoder featureEncoder;
 
-    public WorkloadPredictionModel(Booster booster) {
-        this.booster = booster;
+    public WorkloadPredictionModel(
+            Booster booster,
+            ModelFeatureEncoder featureEncoder
+    ) {
+        this.booster = Objects.requireNonNull(
+                booster,
+                "booster must not be null"
+        );
+        this.featureEncoder = Objects.requireNonNull(
+                featureEncoder,
+                "featureEncoder must not be null"
+        );
     }
 
-    public String predict(RoutingFeatures features)
-            throws XGBoostError {
+    public double predictWaitingTime(
+            RoutingCandidate candidate
+    ) throws XGBoostError {
 
-        double[] vector = features.toVector();
-
-        if (vector.length != EXPECTED_FEATURE_COUNT) {
-            throw new IllegalArgumentException(
-                    "Expected " + EXPECTED_FEATURE_COUNT
-                            + " features but received "
-                            + vector.length
-            );
-        }
-
-        float[] values = toFloatArray(vector);
+        float[] values = featureEncoder.encode(candidate);
 
         DMatrix matrix = new DMatrix(
                 values,
@@ -41,60 +42,30 @@ public class WorkloadPredictionModel {
         try {
             float[][] predictions = booster.predict(matrix);
 
-            if (predictions.length == 0
-                    || predictions[0].length == 0) {
+            if (predictions.length != 1
+                    || predictions[0].length != 1) {
                 throw new IllegalStateException(
-                        "XGBoost returned no prediction"
+                        "Expected exactly one regression prediction, "
+                                + "but received "
+                                + predictions.length
+                                + " prediction row(s)"
                 );
             }
 
-            return mapPrediction(predictions[0]);
+            double predictedWaitingTimeMs =
+                    predictions[0][0];
+
+            if (!Double.isFinite(predictedWaitingTimeMs)) {
+                throw new IllegalStateException(
+                        "XGBoost returned a non-finite prediction: "
+                                + predictedWaitingTimeMs
+                );
+            }
+
+            return Math.max(0.0, predictedWaitingTimeMs);
 
         } finally {
             matrix.dispose();
         }
-    }
-
-    private float[] toFloatArray(double[] values) {
-        float[] result = new float[values.length];
-
-        for (int i = 0; i < values.length; i++) {
-            if (!Double.isFinite(values[i])) {
-                throw new IllegalArgumentException(
-                        "Non-finite feature at index " + i
-                );
-            }
-
-            result[i] = (float) values[i];
-        }
-
-        return result;
-    }
-
-    private String mapPrediction(float[] prediction) {
-        if (prediction.length == 1) {
-            return mapClass(Math.round(prediction[0]));
-        }
-
-        int bestClass = 0;
-
-        for (int i = 1; i < prediction.length; i++) {
-            if (prediction[i] > prediction[bestClass]) {
-                bestClass = i;
-            }
-        }
-
-        return mapClass(bestClass);
-    }
-
-    private String mapClass(int predictedClass) {
-        return switch (predictedClass) {
-            case 0 -> QueueNames.QUEUE_1;
-            case 1 -> QueueNames.QUEUE_2;
-            case 2 -> QueueNames.QUEUE_3;
-            default -> throw new IllegalStateException(
-                    "Unknown predicted class: " + predictedClass
-            );
-        };
     }
 }

@@ -7,15 +7,4 @@ public record QueueFeatures(
         double utilisation,
         double backlogGrowth,
         double estimatedDelay
-) {
-    public double[] toVector() {
-        return new double[]{
-                queueLength,
-                consumerThroughput,
-                arrivalInterval,
-                utilisation,
-                backlogGrowth,
-                estimatedDelay
-        };
-    }
-}
+) {}
