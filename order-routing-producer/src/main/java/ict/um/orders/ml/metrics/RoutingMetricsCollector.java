@@ -15,7 +15,7 @@ import java.util.Map;
 public class RoutingMetricsCollector {
 
     private static final double MAX_INTERVAL_SECONDS = 60.0;
-    private static final double MAX_TAIL_LATENCY_SECONDS = 60.0;
+    private static final double MAX_ESTIMATED_DELAY_SECONDS = 60.0;
     private static final double MAX_UTILISATION = 10.0;
 
     private final RestClient client;
@@ -45,7 +45,7 @@ public class RoutingMetricsCollector {
         double arrivalInterval = calculateArrivalInterval(publishRate);
         double utilisation = calculateUtilisation(publishRate, ackRate);
         double backlogGrowth = publishRate - ackRate;
-        double tailLatency = calculateTailLatency(queueLength, ackRate);
+        double tailLatency = calculateEstimatedDelay(queueLength, ackRate);
 
         return new QueueFeatures(
                 queueLength,
@@ -126,19 +126,19 @@ public class RoutingMetricsCollector {
         );
     }
 
-    private double calculateTailLatency(
+    private double calculateEstimatedDelay(
             double queueLength,
             double ackRate
     ) {
         if (ackRate <= 0.0) {
             return queueLength > 0.0
-                    ? MAX_TAIL_LATENCY_SECONDS
+                    ? MAX_ESTIMATED_DELAY_SECONDS
                     : 0.0;
         }
 
         return Math.min(
                 queueLength / ackRate,
-                MAX_TAIL_LATENCY_SECONDS
+                MAX_ESTIMATED_DELAY_SECONDS
         );
     }
 
