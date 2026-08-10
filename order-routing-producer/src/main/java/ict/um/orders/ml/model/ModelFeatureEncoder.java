@@ -10,7 +10,6 @@ public class ModelFeatureEncoder {
 
     private static final String ORDER_STATUS_PREFIX = "order_status_";
     private static final String CATEGORY_PREFIX = "category_";
-    private static final String SELECTED_QUEUE_PREFIX = "selected_queue_";
 
     private final List<String> transformedFeatureNames;
 
@@ -35,8 +34,8 @@ public class ModelFeatureEncoder {
                 "candidate context must not be null"
         );
         Objects.requireNonNull(
-                candidate.routingFeatures(),
-                "routing features must not be null"
+                candidate.queueFeatures(),
+                "candidate queue features must not be null"
         );
 
         float[] encoded =
@@ -72,10 +71,6 @@ public class ModelFeatureEncoder {
             return encodeCategory(featureName, candidate);
         }
 
-        if (featureName.startsWith(SELECTED_QUEUE_PREFIX)) {
-            return encodeSelectedQueue(featureName, candidate);
-        }
-
         return encodeNumericFeature(featureName, candidate);
     }
 
@@ -109,23 +104,13 @@ public class ModelFeatureEncoder {
         );
     }
 
-    private float encodeSelectedQueue(
-            String featureName,
-            RoutingCandidate candidate
-    ) {
-        String expectedQueue = featureName.substring(
-                SELECTED_QUEUE_PREFIX.length()
-        );
-
-        return oneHot(
-                expectedQueue.equals(candidate.selectedQueue())
-        );
-    }
-
     private float encodeNumericFeature(
             String featureName,
             RoutingCandidate candidate
     ) {
+        QueueFeatures queue =
+                candidate.queueFeatures();
+
         return switch (featureName) {
             case "order_value" ->
                     finiteFloat(
@@ -139,177 +124,48 @@ public class ModelFeatureEncoder {
                             featureName
                     );
 
-            case "queue1_length" ->
-                    queueValue(
-                            candidate,
-                            "queue1",
-                            featureName,
-                            QueueFeatures::queueLength
+            case "candidate_queue_length" ->
+                    finiteFloat(
+                            queue.queueLength(),
+                            featureName
                     );
 
-            case "queue1_consumer_throughput" ->
-                    queueValue(
-                            candidate,
-                            "queue1",
-                            featureName,
-                            QueueFeatures::consumerThroughput
+            case "candidate_consumer_throughput" ->
+                    finiteFloat(
+                            queue.consumerThroughput(),
+                            featureName
                     );
 
-            case "queue1_arrival_interval" ->
-                    queueValue(
-                            candidate,
-                            "queue1",
-                            featureName,
-                            QueueFeatures::arrivalInterval
+            case "candidate_arrival_interval" ->
+                    finiteFloat(
+                            queue.arrivalInterval(),
+                            featureName
                     );
 
-            case "queue1_utilisation" ->
-                    queueValue(
-                            candidate,
-                            "queue1",
-                            featureName,
-                            QueueFeatures::utilisation
+            case "candidate_utilisation" ->
+                    finiteFloat(
+                            queue.utilisation(),
+                            featureName
                     );
 
-            case "queue1_backlog_growth" ->
-                    queueValue(
-                            candidate,
-                            "queue1",
-                            featureName,
-                            QueueFeatures::backlogGrowth
+            case "candidate_backlog_growth" ->
+                    finiteFloat(
+                            queue.backlogGrowth(),
+                            featureName
                     );
 
-            case "queue1_estimated_delay" ->
-                    queueValue(
-                            candidate,
-                            "queue1",
-                            featureName,
-                            QueueFeatures::estimatedDelay
+            case "candidate_estimated_delay" ->
+                    finiteFloat(
+                            queue.estimatedDelay(),
+                            featureName
                     );
 
-            case "queue2_length" ->
-                    queueValue(
-                            candidate,
-                            "queue2",
-                            featureName,
-                            QueueFeatures::queueLength
+            default ->
+                    throw new IllegalArgumentException(
+                            "Unsupported model feature: "
+                                    + featureName
                     );
-
-            case "queue2_consumer_throughput" ->
-                    queueValue(
-                            candidate,
-                            "queue2",
-                            featureName,
-                            QueueFeatures::consumerThroughput
-                    );
-
-            case "queue2_arrival_interval" ->
-                    queueValue(
-                            candidate,
-                            "queue2",
-                            featureName,
-                            QueueFeatures::arrivalInterval
-                    );
-
-            case "queue2_utilisation" ->
-                    queueValue(
-                            candidate,
-                            "queue2",
-                            featureName,
-                            QueueFeatures::utilisation
-                    );
-
-            case "queue2_backlog_growth" ->
-                    queueValue(
-                            candidate,
-                            "queue2",
-                            featureName,
-                            QueueFeatures::backlogGrowth
-                    );
-
-            case "queue2_estimated_delay" ->
-                    queueValue(
-                            candidate,
-                            "queue2",
-                            featureName,
-                            QueueFeatures::estimatedDelay
-                    );
-
-            case "queue3_length" ->
-                    queueValue(
-                            candidate,
-                            "queue3",
-                            featureName,
-                            QueueFeatures::queueLength
-                    );
-
-            case "queue3_consumer_throughput" ->
-                    queueValue(
-                            candidate,
-                            "queue3",
-                            featureName,
-                            QueueFeatures::consumerThroughput
-                    );
-
-            case "queue3_arrival_interval" ->
-                    queueValue(
-                            candidate,
-                            "queue3",
-                            featureName,
-                            QueueFeatures::arrivalInterval
-                    );
-
-            case "queue3_utilisation" ->
-                    queueValue(
-                            candidate,
-                            "queue3",
-                            featureName,
-                            QueueFeatures::utilisation
-                    );
-
-            case "queue3_backlog_growth" ->
-                    queueValue(
-                            candidate,
-                            "queue3",
-                            featureName,
-                            QueueFeatures::backlogGrowth
-                    );
-
-            case "queue3_estimated_delay" ->
-                    queueValue(
-                            candidate,
-                            "queue3",
-                            featureName,
-                            QueueFeatures::estimatedDelay
-                    );
-
-            default -> throw new IllegalArgumentException(
-                    "Unsupported model feature: " + featureName
-            );
         };
-    }
-
-    private float queueValue(
-            RoutingCandidate candidate,
-            String queueName,
-            String featureName,
-            QueueMetricExtractor extractor
-    ) {
-        QueueFeatures queueFeatures =
-                candidate.routingFeatures()
-                        .queues()
-                        .get(queueName);
-
-        if (queueFeatures == null) {
-            throw new IllegalArgumentException(
-                    "Missing metrics for queue: " + queueName
-            );
-        }
-
-        return finiteFloat(
-                extractor.extract(queueFeatures),
-                featureName
-        );
     }
 
     private float finiteFloat(
@@ -330,11 +186,5 @@ public class ModelFeatureEncoder {
 
     private float oneHot(boolean matches) {
         return matches ? 1.0F : 0.0F;
-    }
-
-    @FunctionalInterface
-    private interface QueueMetricExtractor {
-
-        double extract(QueueFeatures features);
     }
 }

@@ -60,9 +60,14 @@ public class RoutingMetricsCollector {
     public RoutingFeatures collectAll() {
         return new RoutingFeatures(
                 Map.of(
-                        "queue1", collect(QueueNames.QUEUE_1),
-                        "queue2", collect(QueueNames.QUEUE_2),
-                        "queue3", collect(QueueNames.QUEUE_3)
+                        QueueNames.QUEUE_1,
+                        collect(QueueNames.QUEUE_1),
+
+                        QueueNames.QUEUE_2,
+                        collect(QueueNames.QUEUE_2),
+
+                        QueueNames.QUEUE_3,
+                        collect(QueueNames.QUEUE_3)
                 )
         );
     }

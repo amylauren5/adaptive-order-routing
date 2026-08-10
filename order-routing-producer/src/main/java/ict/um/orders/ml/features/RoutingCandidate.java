@@ -4,7 +4,6 @@ import ict.um.orders.routing.OrderRoutingContext;
 
 public record RoutingCandidate(
         OrderRoutingContext context,
-        String selectedQueue,
-        RoutingFeatures routingFeatures
+        QueueFeatures queueFeatures
 ) {
 }

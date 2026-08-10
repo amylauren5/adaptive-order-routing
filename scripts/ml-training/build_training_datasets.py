@@ -108,6 +108,8 @@ def build_training_dataset(run_directory: Path) -> Path:
 
     merged = merged.drop(columns=["_merge"])
 
+    merged = add_candidate_features(merged)
+
     if "realised_waiting_time_ms" not in merged.columns:
         raise ValueError(
             "Merged dataset is missing realised_waiting_time_ms"
@@ -146,6 +148,56 @@ def build_training_dataset(run_directory: Path) -> Path:
 
     return output_path
 
+def add_candidate_features(data: pd.DataFrame) -> pd.DataFrame:
+    queue_prefix = {
+        "processing.queue-1": "queue1",
+        "processing.queue-2": "queue2",
+        "processing.queue-3": "queue3",
+    }
+
+    output = data.copy()
+
+    for row_index, row in output.iterrows():
+        selected_queue = row["selected_queue"]
+
+        if selected_queue not in queue_prefix:
+            raise ValueError(
+                f"Unknown selected queue: {selected_queue}"
+            )
+
+        prefix = queue_prefix[selected_queue]
+
+        output.at[
+            row_index,
+            "candidate_queue_length",
+        ] = row[f"{prefix}_length"]
+
+        output.at[
+            row_index,
+            "candidate_consumer_throughput",
+        ] = row[f"{prefix}_consumer_throughput"]
+
+        output.at[
+            row_index,
+            "candidate_arrival_interval",
+        ] = row[f"{prefix}_arrival_interval"]
+
+        output.at[
+            row_index,
+            "candidate_utilisation",
+        ] = row[f"{prefix}_utilisation"]
+
+        output.at[
+            row_index,
+            "candidate_backlog_growth",
+        ] = row[f"{prefix}_backlog_growth"]
+
+        output.at[
+            row_index,
+            "candidate_estimated_delay",
+        ] = row[f"{prefix}_estimated_delay"]
+
+    return output
 
 def find_run_directories(
         data_directory: Path,
@@ -157,7 +209,6 @@ def find_run_directories(
         and (directory / OBSERVATIONS_FILE).exists()
         and (directory / OUTCOMES_FILE).exists()
     )
-
 
 def main() -> None:
     parser = argparse.ArgumentParser(

@@ -21,31 +21,18 @@ TARGET_COLUMN = "realised_waiting_time_ms"
 
 CATEGORICAL_COLUMNS = [
     "order_status",
-    "category",
-    "selected_queue",
+    "category"
 ]
 
 NUMERIC_COLUMNS = [
     "order_value",
     "item_count",
-    "queue1_length",
-    "queue1_consumer_throughput",
-    "queue1_arrival_interval",
-    "queue1_utilisation",
-    "queue1_backlog_growth",
-    "queue1_estimated_delay",
-    "queue2_length",
-    "queue2_consumer_throughput",
-    "queue2_arrival_interval",
-    "queue2_utilisation",
-    "queue2_backlog_growth",
-    "queue2_estimated_delay",
-    "queue3_length",
-    "queue3_consumer_throughput",
-    "queue3_arrival_interval",
-    "queue3_utilisation",
-    "queue3_backlog_growth",
-    "queue3_estimated_delay",
+    "candidate_queue_length",
+    "candidate_consumer_throughput",
+    "candidate_arrival_interval",
+    "candidate_utilisation",
+    "candidate_backlog_growth",
+    "candidate_estimated_delay",
 ]
 
 FEATURE_COLUMNS = CATEGORICAL_COLUMNS + NUMERIC_COLUMNS
@@ -94,6 +81,7 @@ def validate_dataset(data: pd.DataFrame) -> None:
         "run_id",
         "routing_decision_id",
         "order_id",
+        "selected_queue",
         TARGET_COLUMN,
         *FEATURE_COLUMNS,
     }
@@ -371,9 +359,10 @@ def save_model_schema(
             preprocessor.get_feature_names_out().tolist()
         ),
         "java_inference_note": (
-            "Create one candidate row for each queue by changing "
-            "'selected_queue', predict one waiting time per candidate, "
-            "and select the queue with the smallest prediction."
+            "Create one candidate feature vector for each processing queue "
+            "using that queue's candidate-relative state features, predict "
+            "one waiting time per candidate, and select the queue with the "
+            "smallest prediction."
         ),
     }
 

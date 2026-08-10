@@ -593,10 +593,20 @@ public class EventListener {
                         System.currentTimeMillis()
                 );
 
-        pendingOrdersRepository.save(pendingEvent);
+        pendingOrdersRepository.saveAndFlush(pendingEvent);
 
         logger.info(
                 "Buffered future event for order {} at sequence {}",
+                orderId,
+                sequenceNumber
+        );
+
+        /*
+         * Re-check immediately after buffering. The predecessor may have
+         * completed concurrently between the original sequence check and
+         * persistence of this pending event.
+         */
+        processNextPendingEvent(
                 orderId,
                 sequenceNumber
         );

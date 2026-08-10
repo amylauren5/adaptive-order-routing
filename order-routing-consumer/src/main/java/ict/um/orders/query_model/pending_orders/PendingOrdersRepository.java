@@ -2,6 +2,7 @@ package ict.um.orders.query_model.pending_orders;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface PendingOrdersRepository
@@ -11,4 +12,6 @@ public interface PendingOrdersRepository
             String orderId,
             int sequenceNumber
     );
+
+    List<PendingOrdersView> findAllByOrderByReceivedAtAsc();
 }

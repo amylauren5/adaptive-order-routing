@@ -1,6 +1,7 @@
 package ict.um.orders.services.routing;
 
 import ict.um.orders.core_api.config.QueueNames;
+import ict.um.orders.ml.features.QueueFeatures;
 import ict.um.orders.ml.features.RoutingCandidate;
 import ict.um.orders.ml.features.RoutingFeatures;
 import ict.um.orders.ml.metrics.RoutingMetricsCollector;
@@ -102,11 +103,20 @@ public class AdaptiveRoutingService implements RoutingService {
             String queue
     ) throws XGBoostError {
 
-        RoutingCandidate candidate = new RoutingCandidate(
-                context,
-                queue,
-                routingFeatures
-        );
+        QueueFeatures queueFeatures =
+                routingFeatures.queues().get(queue);
+
+        if (queueFeatures == null) {
+            throw new IllegalArgumentException(
+                    "Missing routing features for queue: " + queue
+            );
+        }
+
+        RoutingCandidate candidate =
+                new RoutingCandidate(
+                        context,
+                        queueFeatures
+                );
 
         double predictedWaitingTimeMs =
                 predictionModel.predictWaitingTime(candidate);
