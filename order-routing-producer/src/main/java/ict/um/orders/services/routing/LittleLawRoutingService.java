@@ -40,17 +40,17 @@ public class LittleLawRoutingService implements RoutingService {
 
         double queue1DelaySeconds =
                 calculateExpectedDelay(
-                        getQueueFeatures(features, "queue1")
+                        getQueueFeatures(features, QueueNames.QUEUE_1)
                 );
 
         double queue2DelaySeconds =
                 calculateExpectedDelay(
-                        getQueueFeatures(features, "queue2")
+                        getQueueFeatures(features, QueueNames.QUEUE_2)
                 );
 
         double queue3DelaySeconds =
                 calculateExpectedDelay(
-                        getQueueFeatures(features, "queue3")
+                        getQueueFeatures(features, QueueNames.QUEUE_3)
                 );
 
         String selectedQueue = chooseQueue(features);
@@ -113,7 +113,7 @@ public class LittleLawRoutingService implements RoutingService {
             return chooseShortestQueue(features);
         }
 
-        return toRabbitQueue(selectRoundRobin(tiedQueues));
+        return selectRoundRobin(tiedQueues);
     }
 
     private double calculateExpectedDelay(
@@ -171,7 +171,7 @@ public class LittleLawRoutingService implements RoutingService {
             );
         }
 
-        return toRabbitQueue(selectRoundRobin(tiedQueues));
+        return selectRoundRobin(tiedQueues);
     }
 
     private void validateFeatures(RoutingFeatures features) {
@@ -205,18 +205,5 @@ public class LittleLawRoutingService implements RoutingService {
         );
 
         return queueKeys.get(index);
-    }
-
-    private String toRabbitQueue(
-            String queueKey
-    ) {
-        return switch (queueKey) {
-            case "queue1" -> QueueNames.QUEUE_1;
-            case "queue2" -> QueueNames.QUEUE_2;
-            case "queue3" -> QueueNames.QUEUE_3;
-            default -> throw new IllegalStateException(
-                    "Unknown queue key: " + queueKey
-            );
-        };
     }
 }

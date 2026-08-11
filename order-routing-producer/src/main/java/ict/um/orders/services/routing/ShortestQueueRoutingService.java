@@ -66,16 +66,15 @@ public class ShortestQueueRoutingService implements RoutingService {
             );
         }
 
-        String selectedQueue =
-                toRabbitQueue(selectRoundRobin(tiedQueues));
+        String selectedQueue = selectRoundRobin(tiedQueues);
 
         logger.info(
                 "Shortest-queue routing: orderId={}, queue1Length={}, "
                         + "queue2Length={}, queue3Length={}, selectedQueue={}",
                 context.orderId(),
-                features.queues().get("queue1").queueLength(),
-                features.queues().get("queue2").queueLength(),
-                features.queues().get("queue3").queueLength(),
+                features.queues().get(QueueNames.QUEUE_1).queueLength(),
+                features.queues().get(QueueNames.QUEUE_2).queueLength(),
+                features.queues().get(QueueNames.QUEUE_3).queueLength(),
                 selectedQueue
         );
 
@@ -119,16 +118,5 @@ public class ShortestQueueRoutingService implements RoutingService {
         );
 
         return queues.get(index);
-    }
-
-    private String toRabbitQueue(String queueKey) {
-        return switch (queueKey) {
-            case "queue1" -> QueueNames.QUEUE_1;
-            case "queue2" -> QueueNames.QUEUE_2;
-            case "queue3" -> QueueNames.QUEUE_3;
-            default -> throw new IllegalStateException(
-                    "Unknown queue key: " + queueKey
-            );
-        };
     }
 }

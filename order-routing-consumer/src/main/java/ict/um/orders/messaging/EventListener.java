@@ -9,6 +9,7 @@ import ict.um.orders.core_api.events.OrderCompletedEvent;
 import ict.um.orders.core_api.events.OrderCreatedEvent;
 import ict.um.orders.core_api.events.OrderDispatchedEvent;
 import ict.um.orders.core_api.messaging.RoutedEventMessage;
+import ict.um.orders.evaluation.EventMetricsLogger;
 import ict.um.orders.exceptions.OutOfOrderEventException;
 import ict.um.orders.query_model.orders.OrderView;
 import ict.um.orders.query_model.orders.OrderViewRepository;
@@ -38,19 +39,22 @@ public class EventListener {
     private final PendingOrdersRepository pendingOrdersRepository;
     private final BlockchainWriteService blockchainWriteService;
     private final Optional<TrainingOutcomeLogger> trainingOutcomeLogger;
+    private final Optional<EventMetricsLogger> eventMetricsLogger;
 
     public EventListener(
             ObjectMapper objectMapper,
             BlockchainWriteService blockchainWriteService,
             OrderViewRepository orderViewRepository,
             PendingOrdersRepository pendingOrdersRepository,
-            Optional<TrainingOutcomeLogger> trainingOutcomeLogger
+            Optional<TrainingOutcomeLogger> trainingOutcomeLogger,
+            Optional<EventMetricsLogger> eventMetricsLogger
     ) {
         this.objectMapper = objectMapper;
         this.blockchainWriteService = blockchainWriteService;
         this.orderViewRepository = orderViewRepository;
         this.pendingOrdersRepository = pendingOrdersRepository;
         this.trainingOutcomeLogger = trainingOutcomeLogger;
+        this.eventMetricsLogger = eventMetricsLogger;
     }
 
     // ------------------- Queue listeners -------------------
@@ -146,12 +150,23 @@ public class EventListener {
 
         if (processed) {
 
+            long consumerCompletedAt =
+                    System.currentTimeMillis();
+
             trainingOutcomeLogger.ifPresent(logger ->
                     logger.logOutcome(
                             routedMessage.getRoutingDecisionId(),
                             routedMessage.getSelectedQueue(),
                             routedMessage.getPublishedAt(),
                             consumerStartedAt
+                    )
+            );
+
+            eventMetricsLogger.ifPresent(logger ->
+                    logger.logEvent(
+                            routedMessage,
+                            consumerStartedAt,
+                            consumerCompletedAt
                     )
             );
 

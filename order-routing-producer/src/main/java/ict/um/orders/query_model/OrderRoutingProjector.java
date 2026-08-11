@@ -4,6 +4,7 @@ import ict.um.orders.core_api.enums.OrderStatus;
 import ict.um.orders.core_api.events.*;
 import ict.um.orders.core_api.messaging.RoutedEventType;
 import ict.um.orders.core_api.queries.GetOrderRoutingByOrderIdQuery;
+import ict.um.orders.evaluation.RoutingMetricsLogger;
 import ict.um.orders.routing.OrderRoutingContext;
 import ict.um.orders.routing.RoutingDecision;
 import ict.um.orders.services.messaging.RabbitEventPublisher;
@@ -18,6 +19,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.util.Optional;
+
 @Component
 public class OrderRoutingProjector {
 
@@ -27,14 +30,17 @@ public class OrderRoutingProjector {
     private final OrderRoutingViewRepository repository;
     private final RabbitEventPublisher publisher;
     private final RoutingService routingService;
+    private final Optional<RoutingMetricsLogger> routingMetricsLogger;
 
     @Autowired
     public OrderRoutingProjector(OrderRoutingViewRepository repository,
                                  RabbitEventPublisher publisher,
-                                 RoutingService routingService) {
+                                 RoutingService routingService,
+                                 Optional<RoutingMetricsLogger> routingMetricsLogger) {
         this.repository = repository;
         this.publisher = publisher;
         this.routingService = routingService;
+        this.routingMetricsLogger = routingMetricsLogger;
     }
 
     // EVENT HANDLERS
@@ -182,14 +188,42 @@ public class OrderRoutingProjector {
 
         Runnable routingOperation = () -> {
             try {
+                long routingStartedAtNs =
+                        System.nanoTime();
+
                 RoutingDecision decision =
                         routingService.route(context);
+
+                long routingOverheadNs =
+                        System.nanoTime() - routingStartedAtNs;
+
+                long routingTimestamp =
+                        System.currentTimeMillis();
 
                 publisher.publish(
                         decision,
                         eventType,
                         event
                 );
+
+                routingMetricsLogger.ifPresent(metricsLogger -> {
+                    try {
+                        metricsLogger.logRoutingDecision(
+                                decision,
+                                eventType.name(),
+                                routingTimestamp,
+                                routingOverheadNs
+                        );
+                    } catch (Exception exception) {
+                        logger.warn(
+                                "Failed to record routing metric for {} "
+                                        + "and order {}",
+                                eventType,
+                                view.getOrderId(),
+                                exception
+                        );
+                    }
+                });
             } catch (Exception exception) {
                 logger.error(
                         "Failed to route and publish {} for order {}",

@@ -617,6 +617,15 @@ public class WorkloadGenerator {
         );
     }
 
+    //  ----------------------- Getters -----------------------
+    public long getWorkloadStartedAt() {
+        return workloadStartedAt;
+    }
+
+    public String getCurrentPhaseName() {
+        return currentPhase().name();
+    }
+
     // ----------------------- Nested types -----------------------
     private enum WorkloadPhase {
         BASELINE,
