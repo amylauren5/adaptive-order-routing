@@ -6,19 +6,24 @@ SCRIPT_DIR=$(
     CDPATH= cd -- "$(dirname -- "$0")" && pwd
 )
 
-PROJECT_DIR=$(
+SCRIPTS_DIR=$(
     CDPATH= cd -- "$SCRIPT_DIR/.." && pwd
+)
+
+PROJECT_DIR=$(
+    CDPATH= cd -- "$SCRIPTS_DIR/.." && pwd
 )
 
 DATA_DIR="$PROJECT_DIR/data"
 
-. "$SCRIPT_DIR/setup/common.sh"
+. "$SCRIPTS_DIR/setup/common.sh"
 
 SEED="${1:-1002}"
 SCALE="${2:-2.0}"
 BURST_ENABLED="${3:-false}"
 BURST_MULTIPLIER="${4:-1.0}"
-DURATION="${5:-30}"
+BURST_DURATION="${5:-5}"
+DURATION="${6:-30}"
 
 RUN_ID=$(
     build_experiment_run_id \
@@ -27,6 +32,7 @@ RUN_ID=$(
         "$SEED" \
         "$BURST_ENABLED" \
         "$BURST_MULTIPLIER" \
+        "$BURST_DURATION" \
         "$DURATION"
 )
 
@@ -37,12 +43,13 @@ echo "Run ID: $RUN_ID"
 echo "=================================================="
 echo ""
 
-"$SCRIPT_DIR/start.sh" \
+"$SCRIPTS_DIR/start.sh" \
     training \
     "$SEED" \
     "$SCALE" \
     "$BURST_ENABLED" \
     "$BURST_MULTIPLIER" \
+    "$BURST_DURATION" \
     "$DURATION"
 
 echo ""

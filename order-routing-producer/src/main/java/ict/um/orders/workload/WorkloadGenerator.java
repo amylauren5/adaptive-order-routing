@@ -5,9 +5,9 @@ import ict.um.orders.core_api.commands.CancelOrderCommand;
 import ict.um.orders.core_api.commands.CompleteOrderCommand;
 import ict.um.orders.core_api.commands.CreateOrderCommand;
 import ict.um.orders.core_api.commands.DispatchOrderCommand;
+import ict.um.orders.evaluation.RoutingMetricsCollector;
 import ict.um.orders.ml.features.QueueFeatures;
 import ict.um.orders.ml.features.RoutingFeatures;
-import ict.um.orders.evaluation.RoutingMetricsCollector;
 import ict.um.orders.services.blockchain.DataHashingService;
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.slf4j.Logger;
@@ -21,7 +21,8 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.UUID;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -31,7 +32,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Component
 public class WorkloadGenerator {
 
-    private static final Logger logger = LoggerFactory.getLogger(WorkloadGenerator.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(WorkloadGenerator.class);
 
     // Dependencies
     private final CommandGateway commandGateway;
@@ -52,20 +54,35 @@ public class WorkloadGenerator {
     private final long burstDurationMillis;
 
     // Experiment state
-    private final AtomicBoolean running = new AtomicBoolean(false);
+    private final AtomicBoolean running =
+            new AtomicBoolean(false);
 
-    private final AtomicBoolean experimentCompleted = new AtomicBoolean(false);
+    private final AtomicBoolean experimentCompleted =
+            new AtomicBoolean(false);
 
-    private final AtomicInteger generatedOrderCount = new AtomicInteger();
+    private final AtomicInteger generatedOrderCount =
+            new AtomicInteger();
 
-    private final AtomicInteger activeLifecycleCount = new AtomicInteger();
+    private final AtomicInteger activeLifecycleCount =
+            new AtomicInteger();
+
+    /*
+     * Counts planned arrivals which have not yet executed.
+     *
+     * This prevents the drain phase from declaring completion if a
+     * scheduler delay causes a planned arrival to execute slightly
+     * after the nominal workload-generation boundary.
+     */
+    private final AtomicInteger pendingArrivalCount =
+            new AtomicInteger();
 
     private volatile long workloadStartedAt;
     private volatile long generationStoppedAt;
     private volatile WorkloadPhase lastLoggedPhase;
 
-    private volatile ScheduledFuture<?> nextOrderTask;
     private volatile ScheduledFuture<?> drainCheckTask;
+
+    private int plannedOrderCount;
 
     public WorkloadGenerator(
             CommandGateway commandGateway,
@@ -76,10 +93,14 @@ public class WorkloadGenerator {
             @Value("${workload.random-seed}") long randomSeed,
             @Value("${workload.arrival-scale}") double arrivalScale,
             @Value("${workload.duration-seconds}") long durationSeconds,
-            @Value("${workload.burst-enabled:false}") boolean burstEnabled,
-            @Value("${workload.burst-start-seconds:20}") long burstStartSeconds,
-            @Value("${workload.burst-duration-seconds:10}") long burstDurationSeconds,
-            @Value("${workload.burst-multiplier:0.25}") double burstMultiplier
+            @Value("${workload.burst-enabled:false}")
+            boolean burstEnabled,
+            @Value("${workload.burst-start-seconds:20}")
+            long burstStartSeconds,
+            @Value("${workload.burst-duration-seconds:10}")
+            long burstDurationSeconds,
+            @Value("${workload.burst-multiplier:0.25}")
+            double burstMultiplier
     ) {
         if (!Double.isFinite(arrivalScale)
                 || arrivalScale <= 0.0) {
@@ -128,26 +149,56 @@ public class WorkloadGenerator {
         this.taskScheduler = taskScheduler;
         this.metricsCollector = metricsCollector;
         this.jdbcTemplate = jdbcTemplate;
-        this.workloadDurationMillis = TimeUnit.SECONDS.toMillis(durationSeconds);
-        this.burstEnabled = burstEnabled;
-        this.burstMultiplier = burstMultiplier;
-        this.burstStartMillis = TimeUnit.SECONDS.toMillis(burstStartSeconds);
-        this.burstDurationMillis = TimeUnit.SECONDS.toMillis(burstDurationSeconds);
+
         this.randomSeed = randomSeed;
         this.arrivalScale = arrivalScale;
 
-        OlistSampling.setSeed(randomSeed);
-        OlistSampling.setArrivalScale(arrivalScale);
+        this.workloadDurationMillis =
+                TimeUnit.SECONDS.toMillis(durationSeconds);
+
+        this.burstEnabled = burstEnabled;
+        this.burstMultiplier = burstMultiplier;
+
+        this.burstStartMillis =
+                TimeUnit.SECONDS.toMillis(
+                        burstStartSeconds
+                );
+
+        this.burstDurationMillis =
+                TimeUnit.SECONDS.toMillis(
+                        burstDurationSeconds
+                );
     }
 
-    // ----------------------- Experiment startup -----------------------
+    // --------------------------------------------------
+    // Experiment startup
+    // --------------------------------------------------
+
     @EventListener(ApplicationReadyEvent.class)
     public void start() {
         if (!running.compareAndSet(false, true)) {
             return;
         }
 
-        workloadStartedAt = System.currentTimeMillis();
+        generatedOrderCount.set(0);
+        activeLifecycleCount.set(0);
+        pendingArrivalCount.set(0);
+        experimentCompleted.set(false);
+
+        /*
+         * Reset the arrival RNG immediately before constructing the
+         * experiment trace.
+         */
+        OlistSampling.setSeed(randomSeed);
+        OlistSampling.setArrivalScale(arrivalScale);
+
+        List<Long> arrivalOffsets =
+                buildArrivalSchedule();
+
+        plannedOrderCount = arrivalOffsets.size();
+
+        workloadStartedAt =
+                System.currentTimeMillis();
 
         logger.info(
                 "\n==================================================\n"
@@ -159,76 +210,148 @@ public class WorkloadGenerator {
                         + "Burst start       : {} seconds\n"
                         + "Burst duration    : {} seconds\n"
                         + "Burst multiplier  : {}\n"
+                        + "Planned orders    : {}\n"
                         + "==================================================",
-                TimeUnit.MILLISECONDS.toSeconds(workloadDurationMillis),
+                TimeUnit.MILLISECONDS.toSeconds(
+                        workloadDurationMillis
+                ),
                 randomSeed,
                 arrivalScale,
                 burstEnabled,
-                TimeUnit.MILLISECONDS.toSeconds(burstStartMillis),
-                TimeUnit.MILLISECONDS.toSeconds(burstDurationMillis),
-                burstMultiplier
+                TimeUnit.MILLISECONDS.toSeconds(
+                        burstStartMillis
+                ),
+                TimeUnit.MILLISECONDS.toSeconds(
+                        burstDurationMillis
+                ),
+                burstMultiplier,
+                plannedOrderCount
         );
 
+        /*
+         * Schedule every arrival from the deterministic trace before
+         * any routing work begins.
+         *
+         * Therefore the selected routing strategy cannot alter the
+         * number or timing of planned arrivals.
+         */
+        pendingArrivalCount.set(
+                plannedOrderCount
+        );
+
+        for (int index = 0;
+             index < arrivalOffsets.size();
+             index++) {
+
+            int sequence = index + 1;
+
+            long arrivalOffsetMillis =
+                    arrivalOffsets.get(index);
+
+            Instant arrivalTime =
+                    Instant.ofEpochMilli(
+                            workloadStartedAt
+                                    + arrivalOffsetMillis
+                    );
+
+            taskScheduler.schedule(
+                    () -> executePlannedArrival(sequence),
+                    arrivalTime
+            );
+        }
+
+        /*
+         * The workload boundary stops the generation period and
+         * begins drain monitoring. It does not cancel already planned
+         * arrivals.
+         */
         taskScheduler.schedule(
                 this::stopGeneratingNewOrders,
-                Instant.now().plusMillis(workloadDurationMillis)
-        );
-
-        scheduleNextOrder();
-    }
-
-    // ----------------------- Workload generation -----------------------
-    private void scheduleNextOrder() {
-        if (!running.get()) {
-            return;
-        }
-
-        logPhaseTransition();
-
-        double multiplier =
-                isBurstActive() ? burstMultiplier : 1.0;
-
-        long delayMillis =
-                OlistSampling.sampleInterArrival(multiplier);
-
-        nextOrderTask = taskScheduler.schedule(
-                this::generateAndReschedule,
-                Instant.now().plusMillis(delayMillis)
+                Instant.ofEpochMilli(
+                        workloadStartedAt
+                                + workloadDurationMillis
+                )
         );
     }
 
-    private void generateAndReschedule() {
-        if (!running.get()) {
-            return;
+    /**
+     * Constructs the complete workload arrival trace before execution.
+     *
+     * Only the experiment seed, arrival scale and burst configuration
+     * influence this trace.
+     */
+    private List<Long> buildArrivalSchedule() {
+        List<Long> arrivalOffsets =
+                new ArrayList<>();
+
+        long plannedElapsedMillis = 0L;
+
+        while (true) {
+            double multiplier =
+                    isBurstActive(plannedElapsedMillis)
+                            ? burstMultiplier
+                            : 1.0;
+
+            long interArrivalMillis =
+                    OlistSampling.sampleInterArrival(
+                            multiplier
+                    );
+
+            plannedElapsedMillis +=
+                    interArrivalMillis;
+
+            if (plannedElapsedMillis
+                    >= workloadDurationMillis) {
+                break;
+            }
+
+            arrivalOffsets.add(
+                    plannedElapsedMillis
+            );
         }
 
+        return List.copyOf(arrivalOffsets);
+    }
+
+    private void executePlannedArrival(
+            int sequence
+    ) {
         try {
-            generateOrder();
+            logPhaseTransition();
+
+            generateOrder(sequence);
+
         } catch (Exception exception) {
             logger.error(
-                    "Failed to generate order",
+                    "Failed to generate planned order {}",
+                    sequence,
                     exception
             );
+
         } finally {
-            if (running.get()) {
-                scheduleNextOrder();
-            }
+            pendingArrivalCount.decrementAndGet();
         }
     }
 
-    private boolean isBurstActive() {
+    // --------------------------------------------------
+    // Phase handling
+    // --------------------------------------------------
+
+    private boolean isBurstActive(
+            long elapsedMillis
+    ) {
         if (!burstEnabled) {
             return false;
         }
 
-        long elapsedMillis =
-                System.currentTimeMillis() - workloadStartedAt;
-
         long burstEndMillis =
-                burstStartMillis + burstDurationMillis;
+                burstStartMillis
+                        + burstDurationMillis;
 
-        return elapsedMillis >= burstStartMillis
-                && elapsedMillis < burstEndMillis;
+        return elapsedMillis
+                >= burstStartMillis
+                && elapsedMillis
+                < burstEndMillis;
     }
 
     private WorkloadPhase currentPhase() {
@@ -237,14 +360,16 @@ public class WorkloadGenerator {
         }
 
         long elapsedMillis =
-                System.currentTimeMillis() - workloadStartedAt;
+                System.currentTimeMillis()
+                        - workloadStartedAt;
 
         if (elapsedMillis < burstStartMillis) {
             return WorkloadPhase.PRE_BURST;
         }
 
         if (elapsedMillis
-                < burstStartMillis + burstDurationMillis) {
+                < burstStartMillis
+                + burstDurationMillis) {
             return WorkloadPhase.BURST;
         }
 
@@ -252,7 +377,8 @@ public class WorkloadGenerator {
     }
 
     private void logPhaseTransition() {
-        WorkloadPhase phase = currentPhase();
+        WorkloadPhase phase =
+                currentPhase();
 
         if (phase == lastLoggedPhase) {
             return;
@@ -261,28 +387,53 @@ public class WorkloadGenerator {
         lastLoggedPhase = phase;
 
         logger.info(
-                "Workload phase changed: phase={}, elapsedMs={}",
+                "Workload phase changed: "
+                        + "phase={}, elapsedMs={}",
                 phase,
-                System.currentTimeMillis() - workloadStartedAt
+                System.currentTimeMillis()
+                        - workloadStartedAt
         );
     }
 
-    // ----------------------- Order generation -----------------------
-    private void generateOrder() {
-        String orderId = UUID.randomUUID().toString();
-        String customerId = UUID.randomUUID().toString();
+    // --------------------------------------------------
+    // Order generation
+    // --------------------------------------------------
 
-        int itemCount = OlistSampling.sampleItemCount();
+    private void generateOrder(
+            int sequence
+    ) {
+        /*
+         * The sequence comes from the precomputed workload trace.
+         * It therefore does not depend on asynchronous execution order.
+         */
+        OlistSampling.OrderSample sample =
+                OlistSampling.sampleOrder(
+                        randomSeed,
+                        sequence
+                );
 
-        long createdAt = System.currentTimeMillis();
+        String orderId =
+                "order-"
+                        + randomSeed
+                        + "-"
+                        + sequence;
+
+        String customerId =
+                "customer-"
+                        + randomSeed
+                        + "-"
+                        + sequence;
+
+        long createdAt =
+                System.currentTimeMillis();
 
         CreateOrderCommand commandWithoutHash =
                 new CreateOrderCommand(
                         orderId,
                         customerId,
-                        OlistSampling.sampleCategory(),
-                        OlistSampling.sampleOrderValue(),
-                        itemCount,
+                        sample.category(),
+                        sample.orderValue(),
+                        sample.itemCount(),
                         createdAt,
                         ""
                 );
@@ -296,9 +447,9 @@ public class WorkloadGenerator {
                 new CreateOrderCommand(
                         orderId,
                         customerId,
-                        commandWithoutHash.getCategory(),
-                        commandWithoutHash.getOrderValue(),
-                        itemCount,
+                        sample.category(),
+                        sample.orderValue(),
+                        sample.itemCount(),
                         createdAt,
                         dataHash
                 );
@@ -313,42 +464,47 @@ public class WorkloadGenerator {
         );
 
         commandGateway.send(createCommand)
-                .whenComplete((result, throwable) -> {
-                    if (throwable != null) {
-                        logger.error(
-                                "Failed to create order {}",
-                                orderId,
-                                throwable
-                        );
-                        return;
-                    }
+                .whenComplete(
+                        (result, throwable) -> {
+                            if (throwable != null) {
+                                logger.error(
+                                        "Failed to create order {}",
+                                        orderId,
+                                        throwable
+                                );
+                                return;
+                            }
 
-                    activeLifecycleCount.incrementAndGet();
-                    scheduleRemainingLifecycle(orderId);
-                });
+                            activeLifecycleCount
+                                    .incrementAndGet();
+
+                            scheduleRemainingLifecycle(
+                                    orderId,
+                                    sample
+                            );
+                        }
+                );
     }
 
-    // ----------------------- Order lifecycle -----------------------
-    private void scheduleRemainingLifecycle(String orderId) {
-        long approvalDelay =
-                OlistSampling.sampleApprovalDelay();
+    // --------------------------------------------------
+    // Order lifecycle
+    // --------------------------------------------------
 
-        if (OlistSampling.sampleCancellation()) {
+    private void scheduleRemainingLifecycle(
+            String orderId,
+            OlistSampling.OrderSample sample
+    ) {
+        if (sample.cancelled()) {
             scheduleCancellation(
                     orderId,
-                    approvalDelay
+                    sample.approvalDelay(),
+                    sample.cancellationReason()
             );
             return;
         }
 
-        long dispatchDelay =
-                OlistSampling.sampleDispatchDelay();
-
-        long deliveryDelay =
-                OlistSampling.sampleDeliveryDelay();
-
         CompletableFuture.delayedExecutor(
-                approvalDelay,
+                sample.approvalDelay(),
                 TimeUnit.MILLISECONDS
         ).execute(() ->
                 commandGateway.send(
@@ -356,24 +512,28 @@ public class WorkloadGenerator {
                                 orderId,
                                 System.currentTimeMillis()
                         )
-                ).whenComplete((approvalResult, approvalError) -> {
-                    if (approvalError != null) {
-                        logger.error(
-                                "Failed to approve order {}",
-                                orderId,
-                                approvalError
-                        );
+                ).whenComplete(
+                        (approvalResult, approvalError) -> {
+                            if (approvalError != null) {
+                                logger.error(
+                                        "Failed to approve order {}",
+                                        orderId,
+                                        approvalError
+                                );
 
-                        activeLifecycleCount.decrementAndGet();
-                        return;
-                    }
+                                activeLifecycleCount
+                                        .decrementAndGet();
 
-                    scheduleDispatch(
-                            orderId,
-                            dispatchDelay,
-                            deliveryDelay
-                    );
-                })
+                                return;
+                            }
+
+                            scheduleDispatch(
+                                    orderId,
+                                    sample.dispatchDelay(),
+                                    sample.deliveryDelay()
+                            );
+                        }
+                )
         );
     }
 
@@ -391,23 +551,27 @@ public class WorkloadGenerator {
                                 orderId,
                                 System.currentTimeMillis()
                         )
-                ).whenComplete((dispatchResult, dispatchError) -> {
-                    if (dispatchError != null) {
-                        logger.error(
-                                "Failed to dispatch order {}",
-                                orderId,
-                                dispatchError
-                        );
+                ).whenComplete(
+                        (dispatchResult, dispatchError) -> {
+                            if (dispatchError != null) {
+                                logger.error(
+                                        "Failed to dispatch order {}",
+                                        orderId,
+                                        dispatchError
+                                );
 
-                        activeLifecycleCount.decrementAndGet();
-                        return;
-                    }
+                                activeLifecycleCount
+                                        .decrementAndGet();
 
-                    scheduleCompletion(
-                            orderId,
-                            deliveryDelay
-                    );
-                })
+                                return;
+                            }
+
+                            scheduleCompletion(
+                                    orderId,
+                                    deliveryDelay
+                            );
+                        }
+                )
         );
     }
 
@@ -424,28 +588,35 @@ public class WorkloadGenerator {
                                 orderId,
                                 System.currentTimeMillis()
                         )
-                ).whenComplete((completionResult, completionError) -> {
-                    try {
-                        if (completionError != null) {
-                            logger.error(
-                                    "Failed to complete order {}",
-                                    orderId,
-                                    completionError
-                            );
+                ).whenComplete(
+                        (completionResult, completionError) -> {
+                            try {
+                                if (completionError != null) {
+                                    logger.error(
+                                            "Failed to complete order {}",
+                                            orderId,
+                                            completionError
+                                    );
+                                }
+                            } finally {
+                                activeLifecycleCount
+                                        .decrementAndGet();
+                            }
                         }
-                    } finally {
-                        activeLifecycleCount.decrementAndGet();
-                    }
-                })
+                )
         );
     }
 
     private void scheduleCancellation(
             String orderId,
-            long approvalDelay
+            long approvalDelay,
+            String cancellationReason
     ) {
         long cancellationDelay =
-                Math.max(1L, approvalDelay / 2L);
+                Math.max(
+                        1L,
+                        approvalDelay / 2L
+                );
 
         CompletableFuture.delayedExecutor(
                 cancellationDelay,
@@ -455,42 +626,42 @@ public class WorkloadGenerator {
                         new CancelOrderCommand(
                                 orderId,
                                 System.currentTimeMillis(),
-                                OlistSampling.sampleCancellationReason()
+                                cancellationReason
                         )
-                ).whenComplete((result, error) -> {
-                    try {
-                        if (error != null) {
-                            logger.error(
-                                    "Failed to cancel order {}",
-                                    orderId,
-                                    error
-                            );
+                ).whenComplete(
+                        (result, error) -> {
+                            try {
+                                if (error != null) {
+                                    logger.error(
+                                            "Failed to cancel order {}",
+                                            orderId,
+                                            error
+                                    );
+                                }
+                            } finally {
+                                activeLifecycleCount
+                                        .decrementAndGet();
+                            }
                         }
-                    } finally {
-                        activeLifecycleCount.decrementAndGet();
-                    }
-                })
+                )
         );
     }
 
-    // ----------------------- Generation drain -----------------------
+    // --------------------------------------------------
+    // Generation drain
+    // --------------------------------------------------
+
     private void stopGeneratingNewOrders() {
         if (!running.compareAndSet(true, false)) {
             return;
         }
 
-        generationStoppedAt = System.currentTimeMillis();
-
-        ScheduledFuture<?> task = nextOrderTask;
-
-        if (task != null) {
-            task.cancel(false);
-            nextOrderTask = null;
-        }
+        generationStoppedAt =
+                System.currentTimeMillis();
 
         logger.info(
                 "Workload generation period completed; "
-                        + "no new orders will be created. "
+                        + "no further arrivals are planned. "
                         + "Waiting for the system to drain."
         );
 
@@ -512,11 +683,16 @@ public class WorkloadGenerator {
 
     private void checkExperimentCompletion() {
         try {
-            ExperimentState state = readExperimentState();
+            ExperimentState state =
+                    readExperimentState();
 
             logger.info(
-                    "Drain status: activeLifecycles={}, "
-                            + "queueBacklog={}, pendingEvents={}",
+                    "Drain status: "
+                            + "pendingArrivals={}, "
+                            + "activeLifecycles={}, "
+                            + "queueBacklog={}, "
+                            + "pendingEvents={}",
+                    state.pendingArrivals(),
                     state.activeLifecycles(),
                     state.queueBacklog(),
                     state.pendingEvents()
@@ -526,11 +702,15 @@ public class WorkloadGenerator {
                 return;
             }
 
-            if (!experimentCompleted.compareAndSet(false, true)) {
+            if (!experimentCompleted.compareAndSet(
+                    false,
+                    true
+            )) {
                 return;
             }
 
-            ScheduledFuture<?> task = drainCheckTask;
+            ScheduledFuture<?> task =
+                    drainCheckTask;
 
             if (task != null) {
                 task.cancel(false);
@@ -541,22 +721,27 @@ public class WorkloadGenerator {
                     System.currentTimeMillis();
 
             long totalElapsedMillis =
-                    experimentCompletedAt - workloadStartedAt;
+                    experimentCompletedAt
+                            - workloadStartedAt;
 
             long drainDurationMillis =
-                    experimentCompletedAt - generationStoppedAt;
+                    experimentCompletedAt
+                            - generationStoppedAt;
 
             logger.info(
                     "\n==================================================\n"
                             + "Experiment completed successfully\n"
+                            + "Planned orders    : {}\n"
                             + "Generated orders  : {}\n"
                             + "Generation period : {} ms ({} seconds)\n"
                             + "Drain period      : {} ms ({} seconds)\n"
                             + "Total duration    : {} ms ({} seconds)\n"
+                            + "Pending arrivals  : {}\n"
                             + "Active lifecycles : {}\n"
                             + "Pending events    : {}\n"
                             + "Queue backlog     : {}\n"
                             + "==================================================",
+                    plannedOrderCount,
                     generatedOrderCount.get(),
                     workloadDurationMillis,
                     TimeUnit.MILLISECONDS.toSeconds(
@@ -570,6 +755,7 @@ public class WorkloadGenerator {
                     TimeUnit.MILLISECONDS.toSeconds(
                             totalElapsedMillis
                     ),
+                    state.pendingArrivals(),
                     state.activeLifecycles(),
                     state.pendingEvents(),
                     state.queueBacklog()
@@ -577,7 +763,8 @@ public class WorkloadGenerator {
 
         } catch (Exception exception) {
             logger.error(
-                    "Failed to check whether the experiment has drained",
+                    "Failed to check whether "
+                            + "the experiment has drained",
                     exception
             );
         }
@@ -589,35 +776,50 @@ public class WorkloadGenerator {
 
         long queueBacklog = 0L;
 
-        for (String queueKey : RoutingFeatures.QUEUE_ORDER) {
+        for (String queueKey
+                : RoutingFeatures.QUEUE_ORDER) {
+
             QueueFeatures queueFeatures =
-                    features.queues().get(queueKey);
+                    features.queues().get(
+                            queueKey
+                    );
 
             if (queueFeatures == null) {
                 throw new IllegalStateException(
-                        "Missing metrics for queue: " + queueKey
+                        "Missing metrics for queue: "
+                                + queueKey
                 );
             }
 
             queueBacklog += Math.max(
                     0L,
-                    Math.round(queueFeatures.queueLength())
+                    Math.round(
+                            queueFeatures.queueLength()
+                    )
             );
         }
 
-        Long pendingEvents = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM pending_orders_view",
-                Long.class
-        );
+        Long pendingEvents =
+                jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) "
+                                + "FROM pending_orders_view",
+                        Long.class
+                );
 
         return new ExperimentState(
+                pendingArrivalCount.get(),
                 activeLifecycleCount.get(),
                 queueBacklog,
-                pendingEvents == null ? 0L : pendingEvents
+                pendingEvents == null
+                        ? 0L
+                        : pendingEvents
         );
     }
 
-    //  ----------------------- Getters -----------------------
+    // --------------------------------------------------
+    // Getters
+    // --------------------------------------------------
+
     public long getWorkloadStartedAt() {
         return workloadStartedAt;
     }
@@ -626,7 +828,10 @@ public class WorkloadGenerator {
         return currentPhase().name();
     }
 
-    // ----------------------- Nested types -----------------------
+    // --------------------------------------------------
+    // Nested types
+    // --------------------------------------------------
+
     private enum WorkloadPhase {
         BASELINE,
         PRE_BURST,
@@ -635,12 +840,14 @@ public class WorkloadGenerator {
     }
 
     private record ExperimentState(
+            int pendingArrivals,
             int activeLifecycles,
             long queueBacklog,
             long pendingEvents
     ) {
         private boolean isDrained() {
-            return activeLifecycles == 0
+            return pendingArrivals == 0
+                    && activeLifecycles == 0
                     && queueBacklog == 0L
                     && pendingEvents == 0L;
         }

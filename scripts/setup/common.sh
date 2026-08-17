@@ -26,6 +26,19 @@ validate_experiment_arguments() {
             exit 1
             ;;
     esac
+
+    case "$WORKLOAD_BURST_DURATION_SECONDS" in
+        ''|*[!0-9]*)
+            echo "Burst duration must be a positive integer."
+            exit 1
+            ;;
+        *)
+            if [ "$WORKLOAD_BURST_DURATION_SECONDS" -le 0 ]; then
+                echo "Burst duration must be greater than 0."
+                exit 1
+            fi
+            ;;
+    esac
 }
 
 print_experiment_configuration() {
@@ -37,7 +50,8 @@ print_experiment_configuration() {
     echo "Arrival scale     : $WORKLOAD_ARRIVAL_SCALE"
     echo "Burst enabled     : $WORKLOAD_BURST_ENABLED"
     echo "Burst multiplier  : $WORKLOAD_BURST_MULTIPLIER"
-    echo "Duration          : $WORKLOAD_DURATION_SECONDS"
+    echo "Burst duration    : $WORKLOAD_BURST_DURATION_SECONDS"
+    echo "Workload duration : $WORKLOAD_DURATION_SECONDS"
     echo "Run ID            : $EXPERIMENT_RUN_ID"
     echo "=================================================="
     echo ""
@@ -250,7 +264,8 @@ build_experiment_run_id() {
     seed="$3"
     burst_enabled="$4"
     burst_multiplier="$5"
-    duration="$6"
+    burst_duration="$6"
+    workload_duration="$7"
 
     if [ "$burst_enabled" = "true" ]; then
         burst_flag="1"
@@ -258,11 +273,12 @@ build_experiment_run_id() {
         burst_flag="0"
     fi
 
-    printf '%s-s%s-r%s-b%s-m%s-d%s\n' \
+    printf '%s-s%s-r%s-b%s-m%s-bd%s-d%s\n' \
         "$strategy" \
         "$scale" \
         "$seed" \
         "$burst_flag" \
         "$burst_multiplier" \
-        "$duration"
+        "$burst_duration" \
+        "$workload_duration"
 }

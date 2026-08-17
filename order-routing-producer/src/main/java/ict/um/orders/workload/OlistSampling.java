@@ -5,7 +5,7 @@ import java.util.Random;
 
 public final class OlistSampling {
 
-    private static Random random = new Random(42);
+    private static Random arrivalRandom = new Random(42);
 
     // Compresses Olist-derived lifecycle durations.
     private static double timeScale = 0.0001;
@@ -23,12 +23,6 @@ public final class OlistSampling {
             "inventory_unavailable",
             "fraud_suspected"
     );
-
-    public static String sampleCancellationReason() {
-        return CANCELLATION_REASONS.get(
-                random.nextInt(CANCELLATION_REASONS.size())
-        );
-    }
 
     private static final List<WeightedValue<Long>>
             INTER_ARRIVAL_DISTRIBUTION = List.of(
@@ -140,7 +134,7 @@ public final class OlistSampling {
     }
 
     public static void setSeed(long seed) {
-        random = new Random(seed);
+        arrivalRandom = new Random(seed);
     }
 
     public static void setTimeScale(double scale) {
@@ -178,8 +172,10 @@ public final class OlistSampling {
             );
         }
 
-        long empiricalMillis =
-                sampleWeighted(INTER_ARRIVAL_DISTRIBUTION);
+        long empiricalMillis = sampleWeighted(
+                INTER_ARRIVAL_DISTRIBUTION,
+                arrivalRandom
+        );
 
         return Math.max(
                 1L,
@@ -192,38 +188,89 @@ public final class OlistSampling {
         );
     }
 
-    public static long sampleApprovalDelay() {
-        return scale(
-                sampleWeighted(APPROVAL_DELAY_DISTRIBUTION)
+    /**
+     * Produces all stochastic properties for one order from a
+     * deterministic random stream derived from the experiment seed
+     * and the order sequence.
+     *
+     * Therefore asynchronous execution order cannot change which
+     * sampled values belong to a particular order.
+     */
+    public static OrderSample sampleOrder(
+            long experimentSeed,
+            int sequence
+    ) {
+        if (sequence <= 0) {
+            throw new IllegalArgumentException(
+                    "Order sequence must be positive."
+            );
+        }
+
+        long orderSeed =
+                experimentSeed + (1_000_003L * sequence);
+
+        Random random = new Random(orderSeed);
+
+        int itemCount = sampleWeighted(
+                ITEM_COUNT_DISTRIBUTION,
+                random
         );
-    }
 
-    public static long sampleDispatchDelay() {
-        return scale(
-                sampleWeighted(DISPATCH_DELAY_DISTRIBUTION)
+        String category = sampleWeighted(
+                CATEGORY_DISTRIBUTION,
+                random
         );
-    }
 
-    public static long sampleDeliveryDelay() {
-        return scale(
-                sampleWeighted(DELIVERY_DELAY_DISTRIBUTION)
+        double orderValue = sampleWeighted(
+                ORDER_VALUE_DISTRIBUTION,
+                random
         );
-    }
 
-    public static double sampleOrderValue() {
-        return sampleWeighted(ORDER_VALUE_DISTRIBUTION);
-    }
+        long approvalDelay = scale(
+                sampleWeighted(
+                        APPROVAL_DELAY_DISTRIBUTION,
+                        random
+                )
+        );
 
-    public static int sampleItemCount() {
-        return sampleWeighted(ITEM_COUNT_DISTRIBUTION);
-    }
+        boolean cancelled =
+                random.nextDouble() < CANCELLATION_RATE;
 
-    public static String sampleCategory() {
-        return sampleWeighted(CATEGORY_DISTRIBUTION);
-    }
+        /*
+         * Sample the reason regardless of cancellation so that the
+         * per-order random draw sequence remains fixed.
+         */
+        String cancellationReason =
+                CANCELLATION_REASONS.get(
+                        random.nextInt(
+                                CANCELLATION_REASONS.size()
+                        )
+                );
 
-    public static boolean sampleCancellation() {
-        return random.nextDouble() < CANCELLATION_RATE;
+        long dispatchDelay = scale(
+                sampleWeighted(
+                        DISPATCH_DELAY_DISTRIBUTION,
+                        random
+                )
+        );
+
+        long deliveryDelay = scale(
+                sampleWeighted(
+                        DELIVERY_DELAY_DISTRIBUTION,
+                        random
+                )
+        );
+
+        return new OrderSample(
+                itemCount,
+                category,
+                orderValue,
+                approvalDelay,
+                cancelled,
+                cancellationReason,
+                dispatchDelay,
+                deliveryDelay
+        );
     }
 
     private static long scale(long durationMillis) {
@@ -234,7 +281,8 @@ public final class OlistSampling {
     }
 
     private static <T> T sampleWeighted(
-            List<WeightedValue<T>> distribution
+            List<WeightedValue<T>> distribution,
+            Random random
     ) {
         if (distribution.isEmpty()) {
             throw new IllegalArgumentException(
@@ -278,6 +326,18 @@ public final class OlistSampling {
             long weight
     ) {
         return new WeightedValue<>(value, weight);
+    }
+
+    public record OrderSample(
+            int itemCount,
+            String category,
+            double orderValue,
+            long approvalDelay,
+            boolean cancelled,
+            String cancellationReason,
+            long dispatchDelay,
+            long deliveryDelay
+    ) {
     }
 
     private record WeightedValue<T>(
