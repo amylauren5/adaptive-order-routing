@@ -7,7 +7,7 @@ import ict.um.orders.core_api.commands.CreateOrderCommand;
 import ict.um.orders.core_api.commands.DispatchOrderCommand;
 import ict.um.orders.ml.features.QueueFeatures;
 import ict.um.orders.ml.features.RoutingFeatures;
-import ict.um.orders.ml.metrics.RoutingMetricsCollector;
+import ict.um.orders.evaluation.RoutingMetricsCollector;
 import ict.um.orders.services.blockchain.DataHashingService;
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.slf4j.Logger;

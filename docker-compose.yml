@@ -8,6 +8,17 @@ services:
       context: ./order-routing-producer
       dockerfile: Dockerfile
     container_name: producer-app
+    environment:
+      ROUTING_STRATEGY: ${ROUTING_STRATEGY:-training}
+      TRAINING_COLLECTION_ENABLED: ${TRAINING_COLLECTION_ENABLED:-true}
+      WORKLOAD_ARRIVAL_SCALE: ${WORKLOAD_ARRIVAL_SCALE:-2.0}
+      WORKLOAD_DURATION_SECONDS: ${WORKLOAD_DURATION_SECONDS:-30}
+      WORKLOAD_RANDOM_SEED: ${WORKLOAD_RANDOM_SEED:-1002}
+      WORKLOAD_BURST_ENABLED: ${WORKLOAD_BURST_ENABLED:-false}
+      WORKLOAD_BURST_START_SECONDS: ${WORKLOAD_BURST_START_SECONDS:-10}
+      WORKLOAD_BURST_DURATION_SECONDS: ${WORKLOAD_BURST_DURATION_SECONDS:-5}
+      WORKLOAD_BURST_MULTIPLIER: ${WORKLOAD_BURST_MULTIPLIER:-1.0}
+      EXPERIMENT_RUN_ID: ${EXPERIMENT_RUN_ID:-training-default}
     env_file:
       - ./scripts/.env
     volumes:
@@ -29,6 +40,10 @@ services:
       context: ./order-routing-consumer
       dockerfile: Dockerfile
     container_name: consumer-app
+    environment:
+      TRAINING_COLLECTION_ENABLED: ${TRAINING_COLLECTION_ENABLED:-true}
+      EVALUATION_COLLECTION_ENABLED: ${EVALUATION_COLLECTION_ENABLED:-true}
+      EXPERIMENT_RUN_ID: ${EXPERIMENT_RUN_ID:-training-default}
     env_file:
       - ./scripts/.env
     volumes:

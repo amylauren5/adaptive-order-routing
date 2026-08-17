@@ -28,11 +28,10 @@ NUMERIC_COLUMNS = [
     "order_value",
     "item_count",
     "candidate_queue_length",
+    "candidate_arrival_rate",
     "candidate_consumer_throughput",
-    "candidate_arrival_interval",
     "candidate_utilisation",
     "candidate_backlog_growth",
-    "candidate_estimated_delay",
 ]
 
 FEATURE_COLUMNS = CATEGORICAL_COLUMNS + NUMERIC_COLUMNS

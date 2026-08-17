@@ -14,6 +14,7 @@ COMPOSE_FILE="$PROJECT_DIR/docker-compose.yml"
 ENV_FILE="$SCRIPT_DIR/.env"
 
 NETWORK_NAME="ict3500-dissertation_rabbit-network"
+
 GANACHE_CONTAINER="ganache"
 POSTGRES_CONTAINER="postgres-db"
 RABBITMQ_CONTAINER="rabbit-broker"
@@ -21,246 +22,92 @@ AXON_CONTAINER="axon-server"
 CONSUMER_CONTAINER="consumer-app"
 PRODUCER_CONTAINER="producer-app"
 
-compose() {
-    docker compose \
-        -f "$COMPOSE_FILE" \
-        --env-file "$ENV_FILE" \
-        "$@"
-}
+. "$SCRIPT_DIR/setup/common.sh"
+. "$SCRIPT_DIR/setup/blockchain.sh"
 
-wait_for_postgres() {
-    timeout_seconds=120
-    elapsed=0
+# --------------------------------------------------
+# Experiment arguments
+# --------------------------------------------------
 
-    echo "Waiting for PostgreSQL..."
+ROUTING_STRATEGY="${1:-training}"
+WORKLOAD_RANDOM_SEED="${2:-1002}"
+WORKLOAD_ARRIVAL_SCALE="${3:-2.0}"
+WORKLOAD_BURST_ENABLED="${4:-false}"
+WORKLOAD_BURST_MULTIPLIER="${5:-1.0}"
+WORKLOAD_DURATION_SECONDS="${6:-30}"
 
-    while [ "$elapsed" -lt "$timeout_seconds" ]; do
-        if docker exec "$POSTGRES_CONTAINER" sh -c \
-            'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
-            >/dev/null 2>&1; then
+validate_experiment_arguments
 
-            echo "PostgreSQL is ready."
-            return 0
-        fi
+if [ "$ROUTING_STRATEGY" = "training" ]; then
+    TRAINING_COLLECTION_ENABLED="true"
+else
+    TRAINING_COLLECTION_ENABLED="false"
+fi
 
-        sleep 2
-        elapsed=$((elapsed + 2))
-    done
+EVALUATION_COLLECTION_ENABLED="true"
 
-    echo "Timed out waiting for PostgreSQL."
-    docker logs "$POSTGRES_CONTAINER" 2>/dev/null || true
-    return 1
-}
+EXPERIMENT_RUN_ID=$(
+    build_experiment_run_id \
+        "$ROUTING_STRATEGY" \
+        "$WORKLOAD_ARRIVAL_SCALE" \
+        "$WORKLOAD_RANDOM_SEED" \
+        "$WORKLOAD_BURST_ENABLED" \
+        "$WORKLOAD_BURST_MULTIPLIER" \
+        "$WORKLOAD_DURATION_SECONDS"
+)
 
-wait_for_rabbitmq() {
-    timeout_seconds=120
-    elapsed=0
-
-    echo "Waiting for RabbitMQ..."
-
-    while [ "$elapsed" -lt "$timeout_seconds" ]; do
-        if docker exec "$RABBITMQ_CONTAINER" \
-            rabbitmq-diagnostics -q ping \
-            >/dev/null 2>&1; then
-
-            echo "RabbitMQ is ready."
-            return 0
-        fi
-
-        sleep 2
-        elapsed=$((elapsed + 2))
-    done
-
-    echo "Timed out waiting for RabbitMQ."
-    docker logs "$RABBITMQ_CONTAINER" 2>/dev/null || true
-    return 1
-}
-
-wait_for_container_health() {
-    container_name="$1"
-    timeout_seconds="${2:-180}"
-    elapsed=0
-
-    echo "Waiting for '$container_name'..."
-
-    while [ "$elapsed" -lt "$timeout_seconds" ]; do
-        status=$(
-            docker inspect \
-                --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' \
-                "$container_name" 2>/dev/null || true
-        )
-
-        case "$status" in
-            healthy)
-                echo "'$container_name' is healthy."
-                return 0
-                ;;
-            exited|dead)
-                echo "'$container_name' stopped unexpectedly."
-                docker logs "$container_name" 2>/dev/null || true
-                return 1
-                ;;
-        esac
-
-        sleep 2
-        elapsed=$((elapsed + 2))
-    done
-
-    echo "Timed out waiting for '$container_name'."
-    docker logs "$container_name" 2>/dev/null || true
-    return 1
-}
-
-wait_for_ganache() {
-    timeout_seconds=60
-    elapsed=0
-
-    echo "Waiting for Ganache RPC..."
-
-    while [ "$elapsed" -lt "$timeout_seconds" ]; do
-        if docker run --rm \
-            --network "$NETWORK_NAME" \
-            curlimages/curl:latest \
-            --silent \
-            --fail \
-            --request POST \
-            --header "Content-Type: application/json" \
-            --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
-            "http://ganache:8545" \
-            >/dev/null 2>&1; then
-
-            echo "Ganache is ready."
-            return 0
-        fi
-
-        sleep 2
-        elapsed=$((elapsed + 2))
-    done
-
-    echo "Timed out waiting for Ganache."
-    docker logs "$GANACHE_CONTAINER" 2>/dev/null || true
-    return 1
-}
-
-wait_for_processing_queues() {
-    timeout_seconds=180
-    elapsed=0
-
-    echo "Waiting for RabbitMQ processing queues..."
-
-    while [ "$elapsed" -lt "$timeout_seconds" ]; do
-        queues=$(
-            docker exec "$RABBITMQ_CONTAINER" \
-                rabbitmqctl -q list_queues name \
-                2>/dev/null || true
-        )
-
-        if printf '%s\n' "$queues" | grep -qx "processing.queue-1" \
-            && printf '%s\n' "$queues" | grep -qx "processing.queue-2" \
-            && printf '%s\n' "$queues" | grep -qx "processing.queue-3"; then
-
-            echo "All processing queues are ready."
-            return 0
-        fi
-
-        consumer_status=$(
-            docker inspect \
-                --format='{{.State.Status}}' \
-                "$CONSUMER_CONTAINER" 2>/dev/null || true
-        )
-
-        if [ "$consumer_status" = "exited" ] \
-            || [ "$consumer_status" = "dead" ]; then
-
-            echo "Consumer stopped before declaring the queues."
-            docker logs "$CONSUMER_CONTAINER" 2>/dev/null || true
-            return 1
-        fi
-
-        sleep 2
-        elapsed=$((elapsed + 2))
-    done
-
-    echo "Timed out waiting for processing queues."
-    docker logs "$CONSUMER_CONTAINER" 2>/dev/null || true
-    return 1
-}
+export ROUTING_STRATEGY
+export WORKLOAD_RANDOM_SEED
+export WORKLOAD_ARRIVAL_SCALE
+export WORKLOAD_BURST_ENABLED
+export WORKLOAD_BURST_MULTIPLIER
+export WORKLOAD_DURATION_SECONDS
+export TRAINING_COLLECTION_ENABLED
+export EVALUATION_COLLECTION_ENABLED
+export EXPERIMENT_RUN_ID
 
 if [ ! -f "$ENV_FILE" ]; then
     echo "Environment file not found: $ENV_FILE"
     exit 1
 fi
 
-echo "Ensuring Docker network exists..."
+print_experiment_configuration
 
-if ! docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
-    docker network create "$NETWORK_NAME"
-else
-    echo "Network '$NETWORK_NAME' already exists."
-fi
+# --------------------------------------------------
+# Infrastructure
+# --------------------------------------------------
 
-echo "Removing previous Ganache container..."
-docker rm -f "$GANACHE_CONTAINER" >/dev/null 2>&1 || true
+ensure_network
 
-echo "Starting Ganache..."
-
-docker run -d \
-    --name "$GANACHE_CONTAINER" \
-    --network "$NETWORK_NAME" \
-    -p 8545:8545 \
-    trufflesuite/ganache-cli \
-    --gasLimit 12000000 \
-    --accounts 10 \
-    --defaultBalanceEther 100
-
-wait_for_ganache
-
-echo "Extracting Ganache contract information..."
-
-docker run --rm \
-    --network "$NETWORK_NAME" \
-    -v "$PROJECT_DIR:/scripts" \
-    -v /var/run/docker.sock:/var/run/docker.sock \
-    -w /scripts/scripts/setup \
-    docker:stable \
-    sh ./extract-ganache.sh
+start_blockchain
 
 echo "Starting PostgreSQL and RabbitMQ..."
-
 compose up -d postgres rabbitmq
 
 wait_for_postgres
 wait_for_rabbitmq
 
 echo "Starting Axon Server..."
-
 compose up -d axon-server
 
 wait_for_container_health "$AXON_CONTAINER" 180
 
-echo "Building and starting consumer..."
+# --------------------------------------------------
+# Applications
+# --------------------------------------------------
 
+echo "Building and starting consumer..."
 compose up -d --build consumer-app
 
 wait_for_processing_queues
 
 echo "Building and starting producer..."
-
 compose up -d --build producer-app
 
-producer_status=$(
-    docker inspect \
-        --format='{{.State.Status}}' \
-        "$PRODUCER_CONTAINER" 2>/dev/null || true
-)
-
-if [ "$producer_status" != "running" ]; then
-    echo "Producer failed to start."
-    docker logs "$PRODUCER_CONTAINER" 2>/dev/null || true
-    exit 1
-fi
+verify_producer_started
 
 echo ""
 echo "=================================================="
 echo "All services started successfully"
+echo "Run ID: $EXPERIMENT_RUN_ID"
 echo "=================================================="

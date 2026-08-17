@@ -29,9 +29,9 @@ public class BlockchainReadService {
 
     @Autowired
     public BlockchainReadService(
-            @Value("${web3.provider}") String web3Provider,
-            @Value("${private.key}") String privateKey,
-            @Value("${contract.address}") String contractAddress) {
+            @Value("${WEB3_PROVIDER}") String web3Provider,
+            @Value("${PRIVATE_KEY}") String privateKey,
+            @Value("${CONTRACT_ADDRESS}") String contractAddress) {
 
         this.web3j = Web3j.build(new HttpService(web3Provider));
         this.credentials = Credentials.create(privateKey);

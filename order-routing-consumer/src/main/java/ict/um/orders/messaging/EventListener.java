@@ -22,7 +22,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static ict.um.orders.core_api.config.QueueNames.QUEUE_1;
 import static ict.um.orders.core_api.config.QueueNames.QUEUE_2;
@@ -40,6 +42,9 @@ public class EventListener {
     private final BlockchainWriteService blockchainWriteService;
     private final Optional<TrainingOutcomeLogger> trainingOutcomeLogger;
     private final Optional<EventMetricsLogger> eventMetricsLogger;
+
+    private final Map<String, Object> orderLocks =
+            new ConcurrentHashMap<>();
 
     public EventListener(
             ObjectMapper objectMapper,
@@ -227,56 +232,59 @@ public class EventListener {
                         OrderCreatedEvent.class
                 );
 
-        if (event.getSequenceNumber() != 0) {
-            throw new OutOfOrderEventException(
-                    event.getOrderId(),
-                    0,
-                    event.getSequenceNumber()
-            );
-        }
+        synchronized (lockFor(event.getOrderId())) {
 
-        /*
-         * A redelivered creation event must not submit the same
-         * blockchain transaction again.
-         */
-        if (orderViewRepository.existsById(event.getOrderId())) {
-            logger.info(
-                    "Ignoring already processed creation event "
-                            + "for order {}",
-                    event.getOrderId()
-            );
-
-            return false;
-        }
-
-        String transactionHash =
-                blockchainWriteService.createOrderOnBlockchain(
+            if (event.getSequenceNumber() != 0) {
+                throw new OutOfOrderEventException(
                         event.getOrderId(),
-                        event.getDataHash()
+                        0,
+                        event.getSequenceNumber()
+                );
+            }
+
+            /*
+             * A redelivered creation event must not submit the same
+             * blockchain transaction again.
+             */
+            if (orderViewRepository.existsById(event.getOrderId())) {
+                logger.info(
+                        "Ignoring already processed creation event "
+                                + "for order {}",
+                        event.getOrderId()
                 );
 
-        saveOrderView(
-                event.getOrderId(),
-                OrderStatus.CREATED,
-                event.getCategory(),
-                event.getOrderValue(),
-                event.getItemCount(),
-                event.getTimestamp(),
-                event.getSequenceNumber()
-        );
+                return false;
+            }
 
-        logger.info(
-                "Order {} created on blockchain with transaction {}",
-                event.getOrderId(),
-                transactionHash
-        );
+            String transactionHash =
+                    blockchainWriteService.createOrderOnBlockchain(
+                            event.getOrderId(),
+                            event.getDataHash()
+                    );
 
-        processNextPendingEvent(
-                event.getOrderId(),
-                event.getSequenceNumber() + 1
-        );
+            saveOrderView(
+                    event.getOrderId(),
+                    OrderStatus.CREATED,
+                    event.getCategory(),
+                    event.getOrderValue(),
+                    event.getItemCount(),
+                    event.getTimestamp(),
+                    event.getSequenceNumber()
+            );
 
-        return true;
+            logger.info(
+                    "Order {} created on blockchain with transaction {}",
+                    event.getOrderId(),
+                    transactionHash
+            );
+
+            processNextPendingEvent(
+                    event.getOrderId(),
+                    event.getSequenceNumber() + 1
+            );
+
+            return true;
+        }
     }
 
     private boolean handleOrderApproved(
@@ -291,42 +299,45 @@ public class EventListener {
                         OrderApprovedEvent.class
                 );
 
-        OrderView view = validateLifecycleEvent(
-                routedMessage,
-                queue,
-                originalMessage,
-                event.getOrderId(),
-                event.getSequenceNumber()
-        );
+        synchronized (lockFor(event.getOrderId())) {
 
-        if (view == null) {
-            return false;
+            OrderView view = validateLifecycleEvent(
+                    routedMessage,
+                    queue,
+                    originalMessage,
+                    event.getOrderId(),
+                    event.getSequenceNumber()
+            );
+
+            if (view == null) {
+                return false;
+            }
+
+            String transactionHash =
+                    blockchainWriteService.approveOrderOnBlockchain(
+                            event.getOrderId()
+                    );
+
+            updateStatus(
+                    view,
+                    OrderStatus.APPROVED,
+                    event.getTimestamp(),
+                    event.getSequenceNumber()
+            );
+
+            logger.info(
+                    "Order {} approved on blockchain with transaction {}",
+                    event.getOrderId(),
+                    transactionHash
+            );
+
+            processNextPendingEvent(
+                    event.getOrderId(),
+                    event.getSequenceNumber() + 1
+            );
+
+            return true;
         }
-
-        String transactionHash =
-                blockchainWriteService.approveOrderOnBlockchain(
-                        event.getOrderId()
-                );
-
-        updateStatus(
-                view,
-                OrderStatus.APPROVED,
-                event.getTimestamp(),
-                event.getSequenceNumber()
-        );
-
-        logger.info(
-                "Order {} approved on blockchain with transaction {}",
-                event.getOrderId(),
-                transactionHash
-        );
-
-        processNextPendingEvent(
-                event.getOrderId(),
-                event.getSequenceNumber() + 1
-        );
-
-        return true;
     }
 
     private boolean handleOrderDispatched(
@@ -341,42 +352,44 @@ public class EventListener {
                         OrderDispatchedEvent.class
                 );
 
-        OrderView view = validateLifecycleEvent(
-                routedMessage,
-                queue,
-                originalMessage,
-                event.getOrderId(),
-                event.getSequenceNumber()
-        );
+        synchronized (lockFor(event.getOrderId())) {
+            OrderView view = validateLifecycleEvent(
+                    routedMessage,
+                    queue,
+                    originalMessage,
+                    event.getOrderId(),
+                    event.getSequenceNumber()
+            );
 
-        if (view == null) {
-            return false;
+            if (view == null) {
+                return false;
+            }
+
+            String transactionHash =
+                    blockchainWriteService.dispatchOrderOnBlockchain(
+                            event.getOrderId()
+                    );
+
+            updateStatus(
+                    view,
+                    OrderStatus.DISPATCHED,
+                    event.getTimestamp(),
+                    event.getSequenceNumber()
+            );
+
+            logger.info(
+                    "Order {} dispatched on blockchain with transaction {}",
+                    event.getOrderId(),
+                    transactionHash
+            );
+
+            processNextPendingEvent(
+                    event.getOrderId(),
+                    event.getSequenceNumber() + 1
+            );
+
+            return true;
         }
-
-        String transactionHash =
-                blockchainWriteService.dispatchOrderOnBlockchain(
-                        event.getOrderId()
-                );
-
-        updateStatus(
-                view,
-                OrderStatus.DISPATCHED,
-                event.getTimestamp(),
-                event.getSequenceNumber()
-        );
-
-        logger.info(
-                "Order {} dispatched on blockchain with transaction {}",
-                event.getOrderId(),
-                transactionHash
-        );
-
-        processNextPendingEvent(
-                event.getOrderId(),
-                event.getSequenceNumber() + 1
-        );
-
-        return true;
     }
 
     private boolean handleOrderCompleted(
@@ -391,37 +404,39 @@ public class EventListener {
                         OrderCompletedEvent.class
                 );
 
-        OrderView view = validateLifecycleEvent(
-                routedMessage,
-                queue,
-                originalMessage,
-                event.getOrderId(),
-                event.getSequenceNumber()
-        );
+        synchronized (lockFor(event.getOrderId())) {
+            OrderView view = validateLifecycleEvent(
+                    routedMessage,
+                    queue,
+                    originalMessage,
+                    event.getOrderId(),
+                    event.getSequenceNumber()
+            );
 
-        if (view == null) {
-            return false;
+            if (view == null) {
+                return false;
+            }
+
+            String transactionHash =
+                    blockchainWriteService.completeOrderOnBlockchain(
+                            event.getOrderId()
+                    );
+
+            updateStatus(
+                    view,
+                    OrderStatus.COMPLETED,
+                    event.getTimestamp(),
+                    event.getSequenceNumber()
+            );
+
+            logger.info(
+                    "Order {} completed on blockchain with transaction {}",
+                    event.getOrderId(),
+                    transactionHash
+            );
+
+            return true;
         }
-
-        String transactionHash =
-                blockchainWriteService.completeOrderOnBlockchain(
-                        event.getOrderId()
-                );
-
-        updateStatus(
-                view,
-                OrderStatus.COMPLETED,
-                event.getTimestamp(),
-                event.getSequenceNumber()
-        );
-
-        logger.info(
-                "Order {} completed on blockchain with transaction {}",
-                event.getOrderId(),
-                transactionHash
-        );
-
-        return true;
     }
 
     private boolean handleOrderCancelled(
@@ -436,38 +451,40 @@ public class EventListener {
                         OrderCancelledEvent.class
                 );
 
-        OrderView view = validateLifecycleEvent(
-                routedMessage,
-                queue,
-                originalMessage,
-                event.getOrderId(),
-                event.getSequenceNumber()
-        );
+        synchronized (lockFor(event.getOrderId())) {
+            OrderView view = validateLifecycleEvent(
+                    routedMessage,
+                    queue,
+                    originalMessage,
+                    event.getOrderId(),
+                    event.getSequenceNumber()
+            );
 
-        if (view == null) {
-            return false;
+            if (view == null) {
+                return false;
+            }
+
+            String transactionHash =
+                    blockchainWriteService.cancelOrderOnBlockchain(
+                            event.getOrderId(),
+                            event.getReason()
+                    );
+
+            updateStatus(
+                    view,
+                    OrderStatus.CANCELLED,
+                    event.getTimestamp(),
+                    event.getSequenceNumber()
+            );
+
+            logger.info(
+                    "Order {} cancelled on blockchain with transaction {}",
+                    event.getOrderId(),
+                    transactionHash
+            );
+
+            return true;
         }
-
-        String transactionHash =
-                blockchainWriteService.cancelOrderOnBlockchain(
-                        event.getOrderId(),
-                        event.getReason()
-                );
-
-        updateStatus(
-                view,
-                OrderStatus.CANCELLED,
-                event.getTimestamp(),
-                event.getSequenceNumber()
-        );
-
-        logger.info(
-                "Order {} cancelled on blockchain with transaction {}",
-                event.getOrderId(),
-                transactionHash
-        );
-
-        return true;
     }
 
     // ------------------- Confirmed order view updates -------------------
@@ -575,6 +592,13 @@ public class EventListener {
                         + "at sequence {}",
                 orderId,
                 sequenceNumber
+        );
+    }
+
+    private Object lockFor(String orderId) {
+        return orderLocks.computeIfAbsent(
+                orderId,
+                ignored -> new Object()
         );
     }
 

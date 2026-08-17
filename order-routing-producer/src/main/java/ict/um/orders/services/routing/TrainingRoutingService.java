@@ -2,7 +2,7 @@ package ict.um.orders.services.routing;
 
 import ict.um.orders.core_api.config.QueueNames;
 import ict.um.orders.ml.features.RoutingFeatures;
-import ict.um.orders.ml.metrics.RoutingMetricsCollector;
+import ict.um.orders.evaluation.RoutingMetricsCollector;
 import ict.um.orders.ml.training.TrainingDataLogger;
 import ict.um.orders.routing.OrderRoutingContext;
 import ict.um.orders.routing.RoutingDecision;

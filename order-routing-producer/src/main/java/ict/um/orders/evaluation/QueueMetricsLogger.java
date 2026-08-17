@@ -3,7 +3,6 @@ package ict.um.orders.evaluation;
 import ict.um.orders.core_api.config.QueueNames;
 import ict.um.orders.ml.features.QueueFeatures;
 import ict.um.orders.ml.features.RoutingFeatures;
-import ict.um.orders.ml.metrics.RoutingMetricsCollector;
 import ict.um.orders.workload.WorkloadGenerator;
 import jakarta.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Value;
@@ -68,23 +67,20 @@ public class QueueMetricsLogger {
                         + "elapsed_ms,"
                         + "phase,"
                         + "q1_length,"
-                        + "q1_ack_rate,"
-                        + "q1_arrival_interval,"
+                        + "q1_arrival_rate,"
+                        + "q1_consumer_throughput,"
                         + "q1_utilisation,"
                         + "q1_backlog_growth,"
-                        + "q1_estimated_delay,"
                         + "q2_length,"
-                        + "q2_ack_rate,"
-                        + "q2_arrival_interval,"
+                        + "q2_arrival_rate,"
+                        + "q2_consumer_throughput,"
                         + "q2_utilisation,"
                         + "q2_backlog_growth,"
-                        + "q2_estimated_delay,"
                         + "q3_length,"
-                        + "q3_ack_rate,"
-                        + "q3_arrival_interval,"
+                        + "q3_arrival_rate,"
+                        + "q3_consumer_throughput,"
                         + "q3_utilisation,"
                         + "q3_backlog_growth,"
-                        + "q3_estimated_delay,"
                         + "aggregate_backlog"
         );
 
@@ -143,23 +139,20 @@ public class QueueMetricsLogger {
                             + elapsedMs + ","
                             + phase + ","
                             + q1.queueLength() + ","
+                            + q1.arrivalRate() + ","
                             + q1.consumerThroughput() + ","
-                            + q1.arrivalInterval() + ","
                             + q1.utilisation() + ","
                             + q1.backlogGrowth() + ","
-                            + q1.estimatedDelay() + ","
                             + q2.queueLength() + ","
+                            + q2.arrivalRate() + ","
                             + q2.consumerThroughput() + ","
-                            + q2.arrivalInterval() + ","
                             + q2.utilisation() + ","
                             + q2.backlogGrowth() + ","
-                            + q2.estimatedDelay() + ","
                             + q3.queueLength() + ","
+                            + q3.arrivalRate() + ","
                             + q3.consumerThroughput() + ","
-                            + q3.arrivalInterval() + ","
                             + q3.utilisation() + ","
                             + q3.backlogGrowth() + ","
-                            + q3.estimatedDelay() + ","
                             + aggregateBacklog
             );
 

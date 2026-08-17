@@ -97,11 +97,10 @@ public class TrainingDataLogger {
                 }
 
                 append(row, queueFeatures.queueLength());
+                append(row, queueFeatures.arrivalRate());
                 append(row, queueFeatures.consumerThroughput());
-                append(row, queueFeatures.arrivalInterval());
                 append(row, queueFeatures.utilisation());
                 append(row, queueFeatures.backlogGrowth());
-                append(row, queueFeatures.estimatedDelay());
             }
 
             removeTrailingComma(row);
@@ -139,11 +138,10 @@ public class TrainingDataLogger {
 
     private String queueHeaders(String queueName) {
         return queueName + "_length,"
+                + queueName + "_arrival_rate,"
                 + queueName + "_consumer_throughput,"
-                + queueName + "_arrival_interval,"
                 + queueName + "_utilisation,"
-                + queueName + "_backlog_growth,"
-                + queueName + "_estimated_delay"
+                + queueName + "_backlog_growth"
                 + ("queue3".equals(queueName) ? "" : ",");
     }
 

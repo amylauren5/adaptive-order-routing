@@ -136,9 +136,9 @@ public class ModelFeatureEncoder {
                             featureName
                     );
 
-            case "candidate_arrival_interval" ->
+            case "candidate_arrival_rate" ->
                     finiteFloat(
-                            queue.arrivalInterval(),
+                            queue.arrivalRate(),
                             featureName
                     );
 
@@ -151,12 +151,6 @@ public class ModelFeatureEncoder {
             case "candidate_backlog_growth" ->
                     finiteFloat(
                             queue.backlogGrowth(),
-                            featureName
-                    );
-
-            case "candidate_estimated_delay" ->
-                    finiteFloat(
-                            queue.estimatedDelay(),
                             featureName
                     );
 
