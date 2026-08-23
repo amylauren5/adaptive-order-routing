@@ -10,12 +10,20 @@ import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import (
+    mean_absolute_error,
+    mean_squared_error,
+    r2_score,
+)
 from sklearn.model_selection import GroupShuffleSplit
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 from xgboost import XGBRegressor
 
+
+# ==================================================
+# Dataset schema
+# ==================================================
 
 TARGET_COLUMN = "realised_waiting_time_ms"
 
@@ -34,7 +42,10 @@ NUMERIC_COLUMNS = [
     "candidate_backlog_growth",
 ]
 
-FEATURE_COLUMNS = CATEGORICAL_COLUMNS + NUMERIC_COLUMNS
+FEATURE_COLUMNS = (
+        CATEGORICAL_COLUMNS
+        + NUMERIC_COLUMNS
+)
 
 TRACEABILITY_COLUMNS = [
     "run_id",
@@ -46,25 +57,92 @@ TRACEABILITY_COLUMNS = [
 ]
 
 
-def load_datasets(data_directory: Path) -> pd.DataFrame:
+# ==================================================
+# Predefined hyperparameter configurations
+# ==================================================
+
+RANDOM_FOREST_CONFIGS = [
+    {
+        "n_estimators": 300,
+        "min_samples_leaf": 1,
+        "max_features": "sqrt",
+    },
+    {
+        "n_estimators": 400,
+        "min_samples_leaf": 2,
+        "max_features": "sqrt",
+    },
+    {
+        "n_estimators": 500,
+        "min_samples_leaf": 4,
+        "max_features": 1.0,
+    },
+]
+
+XGBOOST_CONFIGS = [
+    {
+        "n_estimators": 300,
+        "learning_rate": 0.05,
+        "max_depth": 4,
+        "min_child_weight": 2,
+        "subsample": 0.8,
+        "colsample_bytree": 0.8,
+        "reg_lambda": 1.0,
+    },
+    {
+        "n_estimators": 500,
+        "learning_rate": 0.05,
+        "max_depth": 6,
+        "min_child_weight": 2,
+        "subsample": 0.8,
+        "colsample_bytree": 0.8,
+        "reg_lambda": 1.0,
+    },
+    {
+        "n_estimators": 700,
+        "learning_rate": 0.03,
+        "max_depth": 6,
+        "min_child_weight": 4,
+        "subsample": 0.9,
+        "colsample_bytree": 0.9,
+        "reg_lambda": 1.0,
+    },
+]
+
+
+# ==================================================
+# Dataset loading
+# ==================================================
+
+def load_datasets(
+        data_directory: Path,
+) -> pd.DataFrame:
     dataset_paths = sorted(
-        data_directory.glob("*/training-dataset.csv")
+        data_directory.glob(
+            "*/training-dataset.csv"
+        )
     )
 
     if not dataset_paths:
         raise FileNotFoundError(
-            f"No training-dataset.csv files found under "
-            f"{data_directory}"
+            "No training-dataset.csv files found "
+            f"under {data_directory}"
         )
 
     frames: list[pd.DataFrame] = []
 
     for dataset_path in dataset_paths:
-        frame = pd.read_csv(dataset_path)
+        frame = pd.read_csv(
+            dataset_path
+        )
 
-        frame["run_id"] = dataset_path.parent.name
+        frame["run_id"] = (
+            dataset_path.parent.name
+        )
 
-        frames.append(frame)
+        frames.append(
+            frame
+        )
 
         print(
             f"Loaded {len(frame):,} rows from "
@@ -77,14 +155,20 @@ def load_datasets(data_directory: Path) -> pd.DataFrame:
     )
 
     print(
-        f"Combined dataset: {len(combined):,} rows from "
-        f"{combined['run_id'].nunique()} run(s)"
+        f"Combined dataset: {len(combined):,} rows "
+        f"from {combined['run_id'].nunique()} run(s)"
     )
 
     return combined
 
 
-def validate_dataset(data: pd.DataFrame) -> None:
+# ==================================================
+# Dataset validation
+# ==================================================
+
+def validate_dataset(
+        data: pd.DataFrame,
+) -> None:
     required_columns = {
         "run_id",
         "routing_decision_id",
@@ -95,7 +179,8 @@ def validate_dataset(data: pd.DataFrame) -> None:
     }
 
     missing_columns = sorted(
-        required_columns - set(data.columns)
+        required_columns
+        - set(data.columns)
     )
 
     if missing_columns:
@@ -105,53 +190,79 @@ def validate_dataset(data: pd.DataFrame) -> None:
         )
 
     duplicate_count = int(
-        data["routing_decision_id"]
+        data[
+            "routing_decision_id"
+        ]
         .duplicated()
         .sum()
     )
 
     if duplicate_count:
         raise ValueError(
-            "Dataset contains "
-            f"{duplicate_count} duplicate routing decision IDs"
+            f"Dataset contains {duplicate_count} "
+            "duplicate routing decision IDs"
         )
 
-    if data[TARGET_COLUMN].isna().any():
+    if data[
+        TARGET_COLUMN
+    ].isna().any():
         raise ValueError(
-            f"{TARGET_COLUMN} contains missing values"
+            f"{TARGET_COLUMN} contains "
+            "missing values"
         )
 
-    if (data[TARGET_COLUMN] < 0).any():
+    if (
+            data[
+                TARGET_COLUMN
+            ] < 0
+    ).any():
         raise ValueError(
-            f"{TARGET_COLUMN} contains negative values"
+            f"{TARGET_COLUMN} contains "
+            "negative values"
         )
 
     missing_features = (
-        data[FEATURE_COLUMNS]
+        data[
+            FEATURE_COLUMNS
+        ]
         .isna()
         .sum()
     )
 
-    missing_features = missing_features[
-        missing_features > 0
-        ]
+    missing_features = (
+        missing_features[
+            missing_features > 0
+            ]
+    )
 
     if not missing_features.empty:
         raise ValueError(
-            "Feature columns contain missing values:\n"
+            "Feature columns contain "
+            "missing values:\n"
             f"{missing_features.to_string()}"
         )
 
     numeric_values = (
-        data[NUMERIC_COLUMNS]
-        .to_numpy(dtype=float)
+        data[
+            NUMERIC_COLUMNS
+        ]
+        .to_numpy(
+            dtype=float
+        )
     )
 
-    if not np.isfinite(numeric_values).all():
+    if not np.isfinite(
+            numeric_values
+    ).all():
         raise ValueError(
-            "Numeric features contain non-finite values"
+            "Numeric features contain "
+            "non-finite values"
         )
 
+
+# ==================================================
+# Run-level dataset partitioning
+# ==================================================
 
 def split_dataset(
         data: pd.DataFrame,
@@ -164,42 +275,63 @@ def split_dataset(
     pd.DataFrame,
     str,
 ]:
-    if validation_size <= 0 or test_size <= 0:
+    if (
+            validation_size <= 0
+            or test_size <= 0
+    ):
         raise ValueError(
-            "Validation and test sizes must be positive"
+            "Validation and test sizes "
+            "must be positive"
         )
 
-    if validation_size + test_size >= 1:
+    if (
+            validation_size
+            + test_size
+            >= 1
+    ):
         raise ValueError(
-            "Validation size plus test size must be less than 1"
+            "Validation size plus test size "
+            "must be less than 1"
         )
 
     run_count = int(
-        data["run_id"].nunique()
+        data[
+            "run_id"
+        ].nunique()
     )
 
     if run_count >= 3:
         grouping_column = "run_id"
-        split_strategy = "complete experiment runs"
+
+        split_strategy = (
+            "complete experiment runs"
+        )
 
     else:
         grouping_column = "order_id"
+
         split_strategy = (
             "complete orders "
             "(development fallback only)"
         )
 
         print(
-            "\nWARNING: Fewer than three complete runs were found.\n"
-            "The script will split by complete order_id groups "
-            "only to verify that the ML pipeline works.\n"
-            "Do not report these scores as final thesis results.\n"
+            "\nWARNING: Fewer than three complete "
+            "runs were found.\n"
+            "The script will split by complete "
+            "order_id groups only to verify that "
+            "the ML pipeline works.\n"
+            "Do not report these scores as final "
+            "thesis results.\n"
         )
 
-    groups = data[grouping_column]
+    groups = data[
+        grouping_column
+    ]
 
     holdout_size = (
-            validation_size + test_size
+            validation_size
+            + test_size
     )
 
     first_split = GroupShuffleSplit(
@@ -208,7 +340,10 @@ def split_dataset(
         random_state=random_state,
     )
 
-    train_indices, holdout_indices = next(
+    (
+        train_indices,
+        holdout_indices,
+    ) = next(
         first_split.split(
             data,
             groups=groups,
@@ -216,39 +351,55 @@ def split_dataset(
     )
 
     train = (
-        data.iloc[train_indices]
+        data.iloc[
+            train_indices
+        ]
         .copy()
     )
 
     holdout = (
-        data.iloc[holdout_indices]
+        data.iloc[
+            holdout_indices
+        ]
         .copy()
     )
 
     relative_test_size = (
-            test_size / holdout_size
+            test_size
+            / holdout_size
     )
 
     second_split = GroupShuffleSplit(
         n_splits=1,
         test_size=relative_test_size,
-        random_state=random_state + 1,
+        random_state=(
+                random_state + 1
+        ),
     )
 
-    validation_indices, test_indices = next(
+    (
+        validation_indices,
+        test_indices,
+    ) = next(
         second_split.split(
             holdout,
-            groups=holdout[grouping_column],
+            groups=holdout[
+                grouping_column
+            ],
         )
     )
 
     validation = (
-        holdout.iloc[validation_indices]
+        holdout.iloc[
+            validation_indices
+        ]
         .copy()
     )
 
     test = (
-        holdout.iloc[test_indices]
+        holdout.iloc[
+            test_indices
+        ]
         .copy()
     )
 
@@ -260,7 +411,12 @@ def split_dataset(
     )
 
 
-def build_preprocessor() -> ColumnTransformer:
+# ==================================================
+# Preprocessing
+# ==================================================
+
+def build_preprocessor(
+) -> ColumnTransformer:
     return ColumnTransformer(
         transformers=[
             (
@@ -282,65 +438,72 @@ def build_preprocessor() -> ColumnTransformer:
     )
 
 
-def build_models(
-        random_state: int,
-) -> dict[str, Pipeline]:
-    return {
-        "Random Forest": Pipeline(
-            steps=[
-                (
-                    "preprocessor",
-                    build_preprocessor(),
-                ),
-                (
-                    "model",
-                    RandomForestRegressor(
-                        n_estimators=400,
-                        min_samples_leaf=2,
-                        max_features="sqrt",
-                        n_jobs=-1,
-                        random_state=random_state,
-                    ),
-                ),
-            ]
-        ),
-        "XGBoost": Pipeline(
-            steps=[
-                (
-                    "preprocessor",
-                    build_preprocessor(),
-                ),
-                (
-                    "model",
-                    XGBRegressor(
-                        objective="reg:squarederror",
-                        n_estimators=500,
-                        learning_rate=0.05,
-                        max_depth=6,
-                        min_child_weight=2,
-                        subsample=0.8,
-                        colsample_bytree=0.8,
-                        reg_lambda=1.0,
-                        n_jobs=-1,
-                        random_state=random_state,
-                        tree_method="hist",
-                    ),
-                ),
-            ]
-        ),
-    }
+# ==================================================
+# Model construction
+# ==================================================
 
+def build_model(
+        model_name: str,
+        config: dict[str, object],
+        random_state: int,
+) -> Pipeline:
+    if model_name == "Random Forest":
+        estimator = (
+            RandomForestRegressor(
+                **config,
+                n_jobs=-1,
+                random_state=random_state,
+            )
+        )
+
+    elif model_name == "XGBoost":
+        estimator = (
+            XGBRegressor(
+                **config,
+                objective="reg:squarederror",
+                n_jobs=-1,
+                random_state=random_state,
+                tree_method="hist",
+            )
+        )
+
+    else:
+        raise ValueError(
+            f"Unsupported model: "
+            f"{model_name}"
+        )
+
+    return Pipeline(
+        steps=[
+            (
+                "preprocessor",
+                build_preprocessor(),
+            ),
+            (
+                "model",
+                estimator,
+            ),
+        ]
+    )
+
+
+# ==================================================
+# Prediction metrics
+# ==================================================
 
 def calculate_metrics(
         actual: pd.Series,
         predicted: np.ndarray,
 ) -> dict[str, float]:
     actual_values = (
-        actual.to_numpy(dtype=float)
+        actual.to_numpy(
+            dtype=float
+        )
     )
 
     absolute_errors = np.abs(
-        actual_values - predicted
+        actual_values
+        - predicted
     )
 
     return {
@@ -384,34 +547,9 @@ def calculate_metrics(
     }
 
 
-def evaluate_model(
-        model_name: str,
-        model: Pipeline,
-        data: pd.DataFrame,
-        split_name: str,
-        output_directory: Path,
-) -> dict[str, float]:
-    predictions = model.predict(
-        data[FEATURE_COLUMNS]
-    )
-
-    metrics = calculate_metrics(
-        data[TARGET_COLUMN],
-        predictions,
-    )
-
-    print(
-        f"\n{model_name} — {split_name}"
-    )
-
-    print(
-        "-" * (
-                len(model_name)
-                + len(split_name)
-                + 3
-        )
-    )
-
+def print_metrics(
+        metrics: dict[str, float],
+) -> None:
     print(
         f"MAE               : "
         f"{metrics['mae_ms']:.2f} ms"
@@ -442,7 +580,261 @@ def evaluate_model(
         f"{metrics['p99_absolute_error_ms']:.2f} ms"
     )
 
-    output = data[
+
+# ==================================================
+# Hyperparameter tuning
+# ==================================================
+
+def tune_model(
+        model_name: str,
+        configurations: list[
+            dict[str, object]
+        ],
+        train: pd.DataFrame,
+        validation: pd.DataFrame,
+        random_state: int,
+) -> tuple[
+    dict[str, object],
+    dict[str, float],
+    pd.DataFrame,
+]:
+    tuning_rows: list[
+        dict[str, object]
+    ] = []
+
+    best_config: (
+            dict[str, object]
+            | None
+    ) = None
+
+    best_metrics: (
+            dict[str, float]
+            | None
+    ) = None
+
+    best_mae = float(
+        "inf"
+    )
+
+    for (
+            config_index,
+            config,
+    ) in enumerate(
+        configurations,
+        start=1,
+    ):
+        print()
+        print(
+            "------------------------------------------"
+        )
+        print(
+            f"{model_name} configuration "
+            f"{config_index}/"
+            f"{len(configurations)}"
+        )
+        print(
+            "------------------------------------------"
+        )
+
+        print(
+            json.dumps(
+                config,
+                indent=2,
+            )
+        )
+
+        model = build_model(
+            model_name,
+            config,
+            random_state,
+        )
+
+        model.fit(
+            train[
+                FEATURE_COLUMNS
+            ],
+            train[
+                TARGET_COLUMN
+            ],
+        )
+
+        predictions = model.predict(
+            validation[
+                FEATURE_COLUMNS
+            ]
+        )
+
+        metrics = calculate_metrics(
+            validation[
+                TARGET_COLUMN
+            ],
+            predictions,
+        )
+
+        print(
+            "\nValidation metrics"
+        )
+
+        print_metrics(
+            metrics
+        )
+
+        tuning_rows.append(
+            {
+                "model": (
+                    model_name
+                ),
+                "configuration_id": (
+                    config_index
+                ),
+                **config,
+                **metrics,
+            }
+        )
+
+        if (
+                metrics[
+                    "mae_ms"
+                ]
+                < best_mae
+        ):
+            best_mae = (
+                metrics[
+                    "mae_ms"
+                ]
+            )
+
+            best_config = (
+                dict(
+                    config
+                )
+            )
+
+            best_metrics = (
+                dict(
+                    metrics
+                )
+            )
+
+    if (
+            best_config is None
+            or best_metrics is None
+    ):
+        raise RuntimeError(
+            "No valid configuration "
+            f"found for {model_name}"
+        )
+
+    tuning_results = pd.DataFrame(
+        tuning_rows
+    )
+
+    print()
+    print(
+        "=========================================="
+    )
+    print(
+        f"Selected {model_name} configuration"
+    )
+    print(
+        "=========================================="
+    )
+
+    print(
+        json.dumps(
+            best_config,
+            indent=2,
+        )
+    )
+
+    print(
+        f"Validation MAE: "
+        f"{best_metrics['mae_ms']:.2f} ms"
+    )
+
+    return (
+        best_config,
+        best_metrics,
+        tuning_results,
+    )
+
+
+# ==================================================
+# Final selected-model fitting
+# ==================================================
+
+def fit_selected_model(
+        model_name: str,
+        config: dict[str, object],
+        train: pd.DataFrame,
+        validation: pd.DataFrame,
+        random_state: int,
+) -> Pipeline:
+    development_data = pd.concat(
+        [
+            train,
+            validation,
+        ],
+        ignore_index=True,
+    )
+
+    model = build_model(
+        model_name,
+        config,
+        random_state,
+    )
+
+    model.fit(
+        development_data[
+            FEATURE_COLUMNS
+        ],
+        development_data[
+            TARGET_COLUMN
+        ],
+    )
+
+    return model
+
+
+# ==================================================
+# Final held-out evaluation
+# ==================================================
+
+def evaluate_final_model(
+        model_name: str,
+        model: Pipeline,
+        test: pd.DataFrame,
+        output_directory: Path,
+) -> dict[str, float]:
+    predictions = model.predict(
+        test[
+            FEATURE_COLUMNS
+        ]
+    )
+
+    metrics = calculate_metrics(
+        test[
+            TARGET_COLUMN
+        ],
+        predictions,
+    )
+
+    print()
+    print(
+        "=========================================="
+    )
+    print(
+        f"{model_name} — held-out test"
+    )
+    print(
+        "=========================================="
+    )
+
+    print_metrics(
+        metrics
+    )
+
+    output = test[
         TRACEABILITY_COLUMNS
     ].copy()
 
@@ -453,19 +845,26 @@ def evaluate_model(
     output[
         "absolute_error_ms"
     ] = np.abs(
-        output[TARGET_COLUMN]
-        - output["predicted_waiting_time_ms"]
+        output[
+            TARGET_COLUMN
+        ]
+        - output[
+            "predicted_waiting_time_ms"
+        ]
     )
 
     safe_name = (
         model_name
         .lower()
-        .replace(" ", "-")
+        .replace(
+            " ",
+            "-",
+        )
     )
 
     output_path = (
             output_directory
-            / f"{safe_name}-{split_name}-predictions.csv"
+            / f"{safe_name}-test-predictions.csv"
     )
 
     output.to_csv(
@@ -473,8 +872,17 @@ def evaluate_model(
         index=False,
     )
 
+    print(
+        f"Test predictions written to: "
+        f"{output_path}"
+    )
+
     return metrics
 
+
+# ==================================================
+# Feature importance
+# ==================================================
 
 def save_feature_importance(
         model_name: str,
@@ -482,11 +890,15 @@ def save_feature_importance(
         output_directory: Path,
 ) -> None:
     preprocessor = (
-        model.named_steps["preprocessor"]
+        model.named_steps[
+            "preprocessor"
+        ]
     )
 
     estimator = (
-        model.named_steps["model"]
+        model.named_steps[
+            "model"
+        ]
     )
 
     feature_names = (
@@ -495,13 +907,18 @@ def save_feature_importance(
     )
 
     importances = (
-        estimator.feature_importances_
+        estimator
+        .feature_importances_
     )
 
     importance = pd.DataFrame(
         {
-            "feature": feature_names,
-            "importance": importances,
+            "feature": (
+                feature_names
+            ),
+            "importance": (
+                importances
+            ),
         }
     ).sort_values(
         "importance",
@@ -511,12 +928,18 @@ def save_feature_importance(
     safe_name = (
         model_name
         .lower()
-        .replace(" ", "-")
+        .replace(
+            " ",
+            "-",
+        )
     )
 
     output_path = (
             output_directory
-            / f"{safe_name}-feature-importance.csv"
+            / (
+                f"{safe_name}"
+                "-feature-importance.csv"
+            )
     )
 
     importance.to_csv(
@@ -530,21 +953,31 @@ def save_feature_importance(
     )
 
 
+# ==================================================
+# Java inference schema
+# ==================================================
+
 def save_model_schema(
         model: Pipeline,
         output_directory: Path,
 ) -> None:
     preprocessor = (
-        model.named_steps["preprocessor"]
+        model.named_steps[
+            "preprocessor"
+        ]
     )
 
     encoder = (
         preprocessor
-        .named_transformers_["categorical"]
+        .named_transformers_[
+            "categorical"
+        ]
     )
 
     schema = {
-        "target": TARGET_COLUMN,
+        "target": (
+            TARGET_COLUMN
+        ),
         "categorical_columns": (
             CATEGORICAL_COLUMNS
         ),
@@ -553,10 +986,15 @@ def save_model_schema(
         ),
         "categorical_values_in_training_order": {
             column: [
-                str(value)
+                str(
+                    value
+                )
                 for value in values
             ]
-            for column, values in zip(
+            for (
+                column,
+                values,
+            ) in zip(
                 CATEGORICAL_COLUMNS,
                 encoder.categories_,
             )
@@ -596,6 +1034,10 @@ def save_model_schema(
     )
 
 
+# ==================================================
+# Final RF vs XGBoost report
+# ==================================================
+
 def save_model_comparison(
         metrics: dict[str, object],
         output_directory: Path,
@@ -604,34 +1046,27 @@ def save_model_comparison(
         dict[str, object]
     ] = []
 
-    models = metrics["models"]
-
     for (
             model_name,
             model_metrics,
-    ) in models.items():
-
-        for split_name in (
-                "validation",
-                "test",
-        ):
-            rows.append(
-                {
-                    "model": model_name,
-                    "split": split_name,
-                    **model_metrics[
-                        split_name
-                    ],
-                }
-            )
+    ) in metrics[
+        "models"
+    ].items():
+        rows.append(
+            {
+                "model": (
+                    model_name
+                ),
+                **model_metrics[
+                    "test"
+                ],
+            }
+        )
 
     comparison = pd.DataFrame(
         rows
     ).sort_values(
-        by=[
-            "split",
-            "mae_ms",
-        ]
+        by="mae_ms"
     )
 
     comparison_path = (
@@ -644,12 +1079,12 @@ def save_model_comparison(
         index=False,
     )
 
+    print()
     print(
-        "\nModel comparison"
+        "Held-out test model comparison"
     )
-
     print(
-        "----------------"
+        "------------------------------"
     )
 
     print(
@@ -662,14 +1097,9 @@ def save_model_comparison(
         )
     )
 
-    validation_rows = comparison[
-        comparison["split"]
-        == "validation"
-        ]
-
-    best_model = (
-        validation_rows.loc[
-            validation_rows[
+    best_test_model = (
+        comparison.loc[
+            comparison[
                 "mae_ms"
             ].idxmin(),
             "model",
@@ -677,10 +1107,8 @@ def save_model_comparison(
     )
 
     summary = (
-        "Model comparison\n"
-        "================\n"
-        f"Best validation MAE: "
-        f"{best_model}\n"
+        "Final predictive-model comparison\n"
+        "=================================\n"
         f"Split strategy: "
         f"{metrics['split_strategy']}\n"
         f"Training runs: "
@@ -688,11 +1116,15 @@ def save_model_comparison(
         f"Validation runs: "
         f"{len(metrics['validation_runs'])}\n"
         f"Testing runs: "
-        f"{len(metrics['testing_runs'])}\n\n"
-        "Training, validation, and testing were separated "
-        "by complete experiment runs so observations from "
-        "the same workload trace could not appear across "
-        "multiple partitions.\n"
+        f"{len(metrics['testing_runs'])}\n"
+        f"Lowest held-out test MAE: "
+        f"{best_test_model}\n\n"
+        "Hyperparameter configurations were selected "
+        "using validation MAE. The selected "
+        "configuration for each model was then refitted "
+        "using the combined training and validation "
+        "partitions and assessed once on the held-out "
+        "test partition.\n"
     )
 
     summary_path = (
@@ -716,11 +1148,16 @@ def save_model_comparison(
     )
 
 
+# ==================================================
+# Main
+# ==================================================
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
-            "Train and evaluate Random Forest and XGBoost "
-            "regressors to predict realised waiting time."
+            "Tune, train and evaluate Random Forest "
+            "and XGBoost regressors to predict "
+            "realised waiting time."
         )
     )
 
@@ -762,12 +1199,14 @@ def main() -> None:
     args = parser.parse_args()
 
     data_directory = (
-        args.data_directory
+        args
+        .data_directory
         .resolve()
     )
 
     output_directory = (
-        args.output_directory
+        args
+        .output_directory
         .resolve()
     )
 
@@ -808,8 +1247,19 @@ def main() -> None:
         ),
     )
 
+    print()
     print(
-        f"\nSplit strategy : "
+        "=========================================="
+    )
+    print(
+        "Dataset partition"
+    )
+    print(
+        "=========================================="
+    )
+
+    print(
+        f"Split strategy : "
         f"{split_strategy}"
     )
 
@@ -828,15 +1278,49 @@ def main() -> None:
         f"{len(test):,}"
     )
 
-    models = build_models(
-        args.random_state
+    print(
+        f"Training runs  : "
+        f"{train['run_id'].nunique()}"
     )
+
+    print(
+        f"Validation runs: "
+        f"{validation['run_id'].nunique()}"
+    )
+
+    print(
+        f"Testing runs   : "
+        f"{test['run_id'].nunique()}"
+    )
+
+    model_configurations = {
+        "Random Forest": (
+            RANDOM_FOREST_CONFIGS
+        ),
+        "XGBoost": (
+            XGBOOST_CONFIGS
+        ),
+    }
+
+    selected_models: dict[
+        str,
+        Pipeline,
+    ] = {}
+
+    tuning_frames: list[
+        pd.DataFrame
+    ] = []
 
     all_metrics: dict[
         str,
         object,
     ] = {
-        "target": TARGET_COLUMN,
+        "target": (
+            TARGET_COLUMN
+        ),
+        "selection_metric": (
+            "validation_mae_ms"
+        ),
         "split_strategy": (
             split_strategy
         ),
@@ -846,56 +1330,85 @@ def main() -> None:
         "training_runs": sorted(
             train[
                 "run_id"
-            ].unique().tolist()
+            ]
+            .unique()
+            .tolist()
         ),
         "validation_runs": sorted(
             validation[
                 "run_id"
-            ].unique().tolist()
+            ]
+            .unique()
+            .tolist()
         ),
         "testing_runs": sorted(
             test[
                 "run_id"
-            ].unique().tolist()
+            ]
+            .unique()
+            .tolist()
         ),
         "models": {},
     }
 
     for (
             model_name,
-            model,
-    ) in models.items():
+            configurations,
+    ) in model_configurations.items():
 
+        print()
         print(
-            f"\nTraining "
-            f"{model_name}..."
+            "=========================================="
+        )
+        print(
+            f"Tuning {model_name}"
+        )
+        print(
+            "=========================================="
         )
 
-        model.fit(
-            train[
-                FEATURE_COLUMNS
-            ],
-            train[
-                TARGET_COLUMN
-            ],
+        (
+            best_config,
+            best_validation_metrics,
+            tuning_results,
+        ) = tune_model(
+            model_name,
+            configurations,
+            train,
+            validation,
+            args.random_state,
         )
 
-        validation_metrics = (
-            evaluate_model(
+        tuning_frames.append(
+            tuning_results
+        )
+
+        print()
+        print(
+            f"Refitting selected {model_name} "
+            "configuration using training "
+            "+ validation data..."
+        )
+
+        selected_model = (
+            fit_selected_model(
                 model_name,
-                model,
+                best_config,
+                train,
                 validation,
-                "validation",
-                output_directory,
+                args.random_state,
             )
         )
 
+        selected_models[
+            model_name
+        ] = selected_model
+
         test_metrics = (
-            evaluate_model(
+            evaluate_final_model(
                 model_name,
-                model,
+                selected_model,
                 test,
-                "test",
                 output_directory,
             )
         )
@@ -903,16 +1416,22 @@ def main() -> None:
         safe_name = (
             model_name
             .lower()
-            .replace(" ", "-")
+            .replace(
+                " ",
+                "-",
+            )
         )
 
         pipeline_path = (
                 output_directory
-                / f"{safe_name}-pipeline.joblib"
+                / (
+                    f"{safe_name}"
+                    "-pipeline.joblib"
+                )
         )
 
         joblib.dump(
-            model,
+            selected_model,
             pipeline_path,
         )
 
@@ -923,27 +1442,62 @@ def main() -> None:
 
         save_feature_importance(
             model_name,
-            model,
+            selected_model,
             output_directory,
         )
 
         all_metrics[
             "models"
         ][model_name] = {
+            "selected_configuration": (
+                best_config
+            ),
             "validation": (
-                validation_metrics
+                best_validation_metrics
             ),
             "test": (
                 test_metrics
             ),
         }
 
+    # --------------------------------------------------
+    # Save full tuning results
+    # --------------------------------------------------
+
+    tuning_results = pd.concat(
+        tuning_frames,
+        ignore_index=True,
+    )
+
+    tuning_path = (
+            output_directory
+            / (
+                "hyperparameter-"
+                "tuning-results.csv"
+            )
+    )
+
+    tuning_results.to_csv(
+        tuning_path,
+        index=False,
+    )
+
+    print()
+    print(
+        "Hyperparameter tuning results "
+        f"written to: {tuning_path}"
+    )
+
+    # --------------------------------------------------
+    # Export selected XGBoost runtime model
+    # --------------------------------------------------
+
     xgboost_model_path = (
             output_directory
             / "xgboost-model.json"
     )
 
-    models[
+    selected_models[
         "XGBoost"
     ].named_steps[
         "model"
@@ -957,9 +1511,15 @@ def main() -> None:
     )
 
     save_model_schema(
-        models["XGBoost"],
+        selected_models[
+            "XGBoost"
+        ],
         output_directory,
     )
+
+    # --------------------------------------------------
+    # Save model metrics
+    # --------------------------------------------------
 
     metrics_path = (
             output_directory
@@ -981,28 +1541,39 @@ def main() -> None:
         f"{metrics_path}"
     )
 
+    # --------------------------------------------------
+    # Save final RF vs XGBoost comparison
+    # --------------------------------------------------
+
     save_model_comparison(
         all_metrics,
         output_directory,
     )
 
-    best_model = min(
-        all_metrics["models"],
-        key=lambda name: (
-            all_metrics["models"]
-            [name]
-            ["validation"]
-            ["mae_ms"]
-        ),
-    )
-
+    print()
     print(
-        "\n"
-        "==================================================\n"
-        "Training completed successfully\n"
-        f"Best validation MAE: {best_model}\n"
-        f"Outputs: {output_directory}\n"
-        "=================================================="
+        "=========================================="
+    )
+    print(
+        "Training completed successfully"
+    )
+    print(
+        "=========================================="
+    )
+    print(
+        "Hyperparameter selection metric: "
+        "validation MAE"
+    )
+    print(
+        f"Outputs: "
+        f"{output_directory}"
+    )
+    print(
+        "Selected XGBoost model exported for "
+        "runtime inference."
+    )
+    print(
+        "=========================================="
     )
 
 

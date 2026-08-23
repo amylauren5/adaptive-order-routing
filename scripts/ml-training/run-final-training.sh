@@ -14,7 +14,7 @@ PROJECT_DIR=$(
     CDPATH= cd -- "$SCRIPTS_DIR/.." && pwd
 )
 
-DATA_DIR="$PROJECT_DIR/data"
+DATA_DIR="$PROJECT_DIR/data/training"
 MODEL_OUTPUT_DIR="$PROJECT_DIR/scripts/ml-training/output"
 PRODUCER_MODEL_DIR="$PROJECT_DIR/order-routing-producer/src/main/resources/models"
 VENV_PYTHON="$PROJECT_DIR/.venv/bin/python"

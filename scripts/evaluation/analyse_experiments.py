@@ -397,16 +397,32 @@ def analyse_run(run_dir: Path) -> dict:
     return summary
 
 
-def find_run_directories(data_dir: Path) -> list[Path]:
-    run_dirs = []
+def find_run_directories(
+        data_dir: Path,
+) -> list[Path]:
+    run_dirs: list[Path] = []
 
-    for directory in sorted(data_dir.iterdir()):
-        if not directory.is_dir():
+    evaluation_directories = [
+        data_dir / "shortest-queue",
+        data_dir / "little-law",
+        data_dir / "ml",
+        ]
+
+    for strategy_directory in evaluation_directories:
+        if not strategy_directory.is_dir():
             continue
 
-        if all((directory / filename).exists()
-               for filename in REQUIRED_FILES):
-            run_dirs.append(directory)
+        for run_directory in sorted(
+                strategy_directory.iterdir()
+        ):
+            if not run_directory.is_dir():
+                continue
+
+            if all(
+                    (run_directory / filename).is_file()
+                    for filename in REQUIRED_FILES
+            ):
+                run_dirs.append(run_directory)
 
     return run_dirs
 

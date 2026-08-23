@@ -61,7 +61,7 @@ else
 
   for CONTAINER in $CONTAINERS; do
     echo "Removing container: $CONTAINER"
-    docker rm -f "$CONTAINER" 2>/dev/null || true
+    docker rm -f -v "$CONTAINER" 2>/dev/null || true
   done
 fi
 

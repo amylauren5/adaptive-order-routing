@@ -34,6 +34,12 @@ case "$STRATEGY" in
         ;;
 esac
 
+STRATEGY_DATA_DIR="$PROJECT_DIR/data/$STRATEGY"
+
+mkdir -p "$STRATEGY_DATA_DIR"
+
+export EXPERIMENT_DATA_DIR="$STRATEGY_DATA_DIR"
+
 RUN_ID=$(
     build_experiment_run_id \
         "$STRATEGY" \
@@ -45,7 +51,7 @@ RUN_ID=$(
         "$DURATION"
 )
 
-RUN_DIR="$PROJECT_DIR/data/$RUN_ID"
+RUN_DIR="$STRATEGY_DATA_DIR/$RUN_ID"
 
 if [ -d "$RUN_DIR" ]; then
     echo "Run directory already exists:"

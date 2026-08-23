@@ -22,7 +22,7 @@ services:
     env_file:
       - ./scripts/.env
     volumes:
-      - ./data:/app/data
+      - ${EXPERIMENT_DATA_DIR:-./data}:/app/data
     ports:
       - "8080:8080"
     networks:
@@ -47,7 +47,7 @@ services:
     env_file:
       - ./scripts/.env
     volumes:
-      - ./data:/app/data
+      - ${EXPERIMENT_DATA_DIR:-./data}:/app/data
     networks:
       - ict3500-dissertation_rabbit-network
     depends_on:

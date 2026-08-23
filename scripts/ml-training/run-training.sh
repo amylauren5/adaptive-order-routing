@@ -14,7 +14,11 @@ PROJECT_DIR=$(
     CDPATH= cd -- "$SCRIPTS_DIR/.." && pwd
 )
 
-DATA_DIR="$PROJECT_DIR/data"
+DATA_DIR="${EXPERIMENT_DATA_DIR:-$PROJECT_DIR/data/training}"
+
+mkdir -p "$DATA_DIR"
+
+export EXPERIMENT_DATA_DIR="$DATA_DIR"
 
 . "$SCRIPTS_DIR/setup/common.sh"
 

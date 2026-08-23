@@ -13,6 +13,7 @@ __pycache__/
 
 # Generated data
 /data/
+/run-archive/
 
 # ML training outputs
 scripts/ml-training/output/
