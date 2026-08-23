@@ -46,7 +46,7 @@ public class RunMetadataWriter {
             @Value("${workload.duration-seconds}") long workloadDurationSeconds,
             @Value("${workload.random-seed}") long randomSeed,
             @Value("${workload.burst-enabled:false}") boolean burstEnabled,
-            @Value("${workload.burst-start-seconds:0}") long burstStartSeconds,
+            @Value("${workload.burst-start-seconds:20}") long burstStartSeconds,
             @Value("${workload.burst-duration-seconds:0}") long burstDurationSeconds,
             @Value("${workload.burst-multiplier:1.0}") double burstMultiplier,
             @Value("${evaluation.queue-sampling-interval-ms:1000}") long queueSamplingIntervalMs
