@@ -2,6 +2,8 @@
 
 set -eu
 
+SCRIPT_STARTED_AT=$(date +%s)
+
 SCRIPT_DIR=$(
     CDPATH= cd -- "$(dirname -- "$0")" && pwd
 )
@@ -246,8 +248,32 @@ run_condition \
     10 \
     60
 
+# --------------------------------------------------
+# Calculate total execution time
+# --------------------------------------------------
+
+SCRIPT_FINISHED_AT=$(date +%s)
+TOTAL_DURATION_SECONDS=$((SCRIPT_FINISHED_AT - SCRIPT_STARTED_AT))
+
+HOURS=$((TOTAL_DURATION_SECONDS / 3600))
+MINUTES=$(((TOTAL_DURATION_SECONDS % 3600) / 60))
+SECONDS=$((TOTAL_DURATION_SECONDS % 60))
+
+FORMATTED_DURATION=$(printf "%02d:%02d:%02d" \
+    "$HOURS" \
+    "$MINUTES" \
+    "$SECONDS")
+
+# --------------------------------------------------
+# Final summary
+# --------------------------------------------------
+
 echo ""
 echo "=================================================="
 echo "FINAL EVALUATION MATRIX COMPLETED"
-echo "Completed matrix: $TOTAL_EXPERIMENTS / $TOTAL_EXPERIMENTS"
+echo "=================================================="
+echo "Completed matrix : $TOTAL_EXPERIMENTS / $TOTAL_EXPERIMENTS"
+echo "Total time       : $FORMATTED_DURATION"
+echo "Total seconds    : $TOTAL_DURATION_SECONDS"
+echo "Data directory   : $DATA_DIR"
 echo "=================================================="
