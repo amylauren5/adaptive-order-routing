@@ -61,7 +61,8 @@ public class RoutingMetricsLogger {
                         + "timestamp,"
                         + "event_type,"
                         + "selected_queue,"
-                        + "routing_overhead_ns"
+                        + "routing_overhead_ns,"
+                        + "model_inference_ns"
         );
 
         writer.newLine();
@@ -94,7 +95,8 @@ public class RoutingMetricsLogger {
                             + timestamp + ","
                             + eventType + ","
                             + decision.selectedQueue() + ","
-                            + routingOverheadNs
+                            + routingOverheadNs + ","
+                            + decision.modelInferenceNs()
             );
 
             writer.newLine();

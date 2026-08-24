@@ -80,7 +80,8 @@ public class ShortestQueueRoutingService implements RoutingService {
 
         return new RoutingDecision(
                 UUID.randomUUID().toString(),
-                selectedQueue
+                selectedQueue,
+                0L
         );
     }
     private double updateShortestQueues(

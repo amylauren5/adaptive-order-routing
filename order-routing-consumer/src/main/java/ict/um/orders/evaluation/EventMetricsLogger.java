@@ -60,7 +60,7 @@ public class EventMetricsLogger {
                         + "event_type,"
                         + "selected_queue,"
                         + "published_at,"
-                        + "consumer_started_at,"
+                        + "processing_started_at,"
                         + "consumer_completed_at,"
                         + "queueing_latency_ms,"
                         + "processing_time_ms"
@@ -72,7 +72,7 @@ public class EventMetricsLogger {
 
     public synchronized void logEvent(
             RoutedEventMessage routedMessage,
-            long consumerStartedAt,
+            long processingStartedAt,
             long consumerCompletedAt
     ) {
         if (routedMessage == null) {
@@ -86,13 +86,13 @@ public class EventMetricsLogger {
         long queueingLatencyMs =
                 Math.max(
                         0L,
-                        consumerStartedAt - publishedAt
+                        processingStartedAt - publishedAt
                 );
 
         long processingTimeMs =
                 Math.max(
                         0L,
-                        consumerCompletedAt - consumerStartedAt
+                        consumerCompletedAt - processingStartedAt
                 );
 
         try {
@@ -102,7 +102,7 @@ public class EventMetricsLogger {
                             + routedMessage.getEventType() + ","
                             + routedMessage.getSelectedQueue() + ","
                             + publishedAt + ","
-                            + consumerStartedAt + ","
+                            + processingStartedAt + ","
                             + consumerCompletedAt + ","
                             + queueingLatencyMs + ","
                             + processingTimeMs

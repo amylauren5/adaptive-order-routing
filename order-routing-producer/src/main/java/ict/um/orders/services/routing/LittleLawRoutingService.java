@@ -70,7 +70,8 @@ public class LittleLawRoutingService implements RoutingService {
 
         return new RoutingDecision(
                 UUID.randomUUID().toString(),
-                selectedQueue
+                selectedQueue,
+                0L
         );
     }
 

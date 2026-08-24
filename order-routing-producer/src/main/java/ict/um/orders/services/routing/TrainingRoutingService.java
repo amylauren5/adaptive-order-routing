@@ -62,7 +62,8 @@ public class TrainingRoutingService implements RoutingService {
 
         return new RoutingDecision(
                 routingDecisionId,
-                selectedQueue
+                selectedQueue,
+                0L
         );
     }
 

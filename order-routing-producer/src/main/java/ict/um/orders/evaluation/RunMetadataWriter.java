@@ -36,6 +36,7 @@ public class RunMetadataWriter {
     private final double burstMultiplier;
 
     private final long queueSamplingIntervalMs;
+    private final long queueStateRefreshIntervalMs;
 
     public RunMetadataWriter(
             ObjectMapper objectMapper,
@@ -49,7 +50,8 @@ public class RunMetadataWriter {
             @Value("${workload.burst-start-seconds:20}") long burstStartSeconds,
             @Value("${workload.burst-duration-seconds:0}") long burstDurationSeconds,
             @Value("${workload.burst-multiplier:1.0}") double burstMultiplier,
-            @Value("${evaluation.queue-sampling-interval-ms:1000}") long queueSamplingIntervalMs
+            @Value("${evaluation.queue-sampling-interval-ms:1000}") long queueSamplingIntervalMs,
+            @Value("${routing.queue-state-refresh-ms:1000}") long queueStateRefreshIntervalMs
     ) {
         this.objectMapper = objectMapper;
         this.dataDirectory = dataDirectory;
@@ -63,6 +65,7 @@ public class RunMetadataWriter {
         this.burstDurationSeconds = burstDurationSeconds;
         this.burstMultiplier = burstMultiplier;
         this.queueSamplingIntervalMs = queueSamplingIntervalMs;
+        this.queueStateRefreshIntervalMs = queueStateRefreshIntervalMs;
     }
 
     @PostConstruct
@@ -100,6 +103,11 @@ public class RunMetadataWriter {
 
         metadata.put("queue_sampling_interval_ms",
                 queueSamplingIntervalMs);
+
+        metadata.put(
+                "queue_state_refresh_interval_ms",
+                queueStateRefreshIntervalMs
+        );
 
         try (var writer = Files.newBufferedWriter(
                 outputPath,

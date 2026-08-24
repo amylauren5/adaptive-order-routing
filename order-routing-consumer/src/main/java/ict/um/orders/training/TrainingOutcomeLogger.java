@@ -54,7 +54,7 @@ public class TrainingOutcomeLogger {
                 "routing_decision_id,"
                         + "selected_queue,"
                         + "published_at,"
-                        + "consumer_started_at,"
+                        + "processing_started_at,"
                         + "realised_waiting_time_ms"
         );
         writer.newLine();
@@ -65,7 +65,7 @@ public class TrainingOutcomeLogger {
             String routingDecisionId,
             String selectedQueue,
             long publishedAt,
-            long consumerStartedAt
+            long processingStartedAt
     ) {
         if (routingDecisionId == null
                 || routingDecisionId.isBlank()) {
@@ -82,14 +82,14 @@ public class TrainingOutcomeLogger {
         }
 
         long realisedWaitingTimeMs =
-                Math.max(0L, consumerStartedAt - publishedAt);
+                Math.max(0L, processingStartedAt - publishedAt);
 
         try {
             writer.write(
                     routingDecisionId + ","
                             + selectedQueue + ","
                             + publishedAt + ","
-                            + consumerStartedAt + ","
+                            + processingStartedAt + ","
                             + realisedWaitingTimeMs
                             + System.lineSeparator()
             );

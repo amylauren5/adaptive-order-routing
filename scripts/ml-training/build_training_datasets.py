@@ -229,10 +229,17 @@ def build_training_dataset(
     )
 
     print(
-        f"[OK] {run_directory.name}: "
-        f"{len(observations)} observations, "
-        f"{len(outcomes)} outcomes, "
-        f"{len(merged)} joined rows"
+        f"[INTEGRITY] {run_directory.name}: "
+        f"observations={len(observations)}, "
+        f"outcomes={len(outcomes)}, "
+        f"duplicate_observations=0, "
+        f"duplicate_outcomes=0, "
+        f"unmatched_observations=0, "
+        f"unmatched_outcomes=0, "
+        f"queue_mismatches=0, "
+        f"invalid_rows=0, "
+        f"joined_rows={len(merged)}, "
+        f"discarded_rows=0"
     )
 
     print(

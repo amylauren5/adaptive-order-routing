@@ -259,7 +259,7 @@ def calculate_throughput(events: pd.DataFrame) -> dict:
     than RabbitMQ's acknowledgement-rate feature.
     """
     starts = pd.to_numeric(
-        events["consumer_started_at"],
+        events["processing_started_at"],
         errors="coerce",
     )
 
@@ -323,6 +323,49 @@ def calculate_routing_overhead_metrics(
         "p99_routing_overhead_us": percentile(overhead_us, 0.99),
     }
 
+def calculate_model_inference_metrics(
+        routing_metrics: pd.DataFrame,
+) -> dict:
+    if "model_inference_ns" not in routing_metrics.columns:
+        return {
+            "mean_model_inference_us": float("nan"),
+            "median_model_inference_us": float("nan"),
+            "p95_model_inference_us": float("nan"),
+            "p99_model_inference_us": float("nan"),
+        }
+
+    inference_ns = pd.to_numeric(
+        routing_metrics["model_inference_ns"],
+        errors="coerce",
+    )
+
+    inference_ns = inference_ns[
+        inference_ns > 0
+        ].dropna()
+
+    if inference_ns.empty:
+        return {
+            "mean_model_inference_us": float("nan"),
+            "median_model_inference_us": float("nan"),
+            "p95_model_inference_us": float("nan"),
+            "p99_model_inference_us": float("nan"),
+        }
+
+    inference_us = (
+            inference_ns
+            / 1_000.0
+    )
+
+    return {
+        "mean_model_inference_us":
+            float(inference_us.mean()),
+        "median_model_inference_us":
+            float(inference_us.median()),
+        "p95_model_inference_us":
+            percentile(inference_us, 0.95),
+        "p99_model_inference_us":
+            percentile(inference_us, 0.99),
+    }
 
 def calculate_queue_distribution(events: pd.DataFrame) -> dict:
     counts = events["selected_queue"].value_counts()
@@ -339,6 +382,29 @@ def calculate_queue_distribution(events: pd.DataFrame) -> dict:
         ),
     }
 
+def calculate_sampling_quality(
+        queue_metrics: pd.DataFrame,
+) -> dict:
+    elapsed = pd.to_numeric(
+        queue_metrics["elapsed_ms"],
+        errors="coerce",
+    ).dropna().sort_values()
+
+    if len(elapsed) < 2:
+        return {
+            "max_queue_sampling_gap_seconds":
+                float("nan"),
+        }
+
+    gaps_ms = (
+        elapsed.diff()
+        .dropna()
+    )
+
+    return {
+        "max_queue_sampling_gap_seconds":
+            float(gaps_ms.max() / 1000.0),
+    }
 
 def analyse_run(run_dir: Path) -> dict:
     for filename in REQUIRED_FILES:
@@ -391,6 +457,16 @@ def analyse_run(run_dir: Path) -> dict:
         calculate_recovery_metrics(
             queue_metrics,
             metadata,
+        )
+    )
+    summary.update(
+        calculate_model_inference_metrics(
+            routing_metrics
+        )
+    )
+    summary.update(
+        calculate_sampling_quality(
+            queue_metrics
         )
     )
 

@@ -63,6 +63,13 @@ public class AdaptiveRoutingService implements RoutingService {
                     )
             );
 
+            long totalModelInferenceNs =
+                    predictions.stream()
+                            .mapToLong(
+                                    QueuePrediction::inferenceNs
+                            )
+                            .sum();
+
             QueuePrediction bestPrediction = predictions.stream()
                     .min(Comparator.comparingDouble(
                             QueuePrediction::predictedWaitingTimeMs
@@ -80,7 +87,8 @@ public class AdaptiveRoutingService implements RoutingService {
 
             return new RoutingDecision(
                     UUID.randomUUID().toString(),
-                    bestPrediction.queue()
+                    bestPrediction.queue(),
+                    totalModelInferenceNs
             );
 
         } catch (Exception exception) {
@@ -118,26 +126,38 @@ public class AdaptiveRoutingService implements RoutingService {
                         queueFeatures
                 );
 
+        long inferenceStartedAtNs =
+                System.nanoTime();
+
         double predictedWaitingTimeMs =
-                predictionModel.predictWaitingTime(candidate);
+                predictionModel.predictWaitingTime(
+                        candidate
+                );
+
+        long inferenceNs =
+                System.nanoTime()
+                        - inferenceStartedAtNs;
 
         logger.info(
-                "ML prediction: orderId={}, status={}, queue={}, predictedWaitingTimeMs={}",
+                "ML prediction: orderId={}, status={}, queue={}, predictedWaitingTimeMs={}, inferenceNs={}",
                 context.orderId(),
                 context.status(),
                 queue,
-                predictedWaitingTimeMs
+                predictedWaitingTimeMs,
+                inferenceNs
         );
 
         return new QueuePrediction(
                 queue,
-                predictedWaitingTimeMs
+                predictedWaitingTimeMs,
+                inferenceNs
         );
     }
 
     private record QueuePrediction(
             String queue,
-            double predictedWaitingTimeMs
+            double predictedWaitingTimeMs,
+            long inferenceNs
     ) {
     }
 }

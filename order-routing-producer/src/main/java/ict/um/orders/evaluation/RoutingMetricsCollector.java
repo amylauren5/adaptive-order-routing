@@ -6,13 +6,16 @@ import ict.um.orders.ml.features.RoutingFeatures;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
-import org.springframework.scheduling.annotation.Scheduled;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Component
 public class RoutingMetricsCollector {
@@ -24,8 +27,18 @@ public class RoutingMetricsCollector {
 
     private final RestClient client;
     private final String virtualHost;
+
+    private final AtomicReference<RoutingFeatures> latestSnapshot =
+            new AtomicReference<>();
+
     private final Map<String, BacklogObservation> backlogObservations =
             new ConcurrentHashMap<>();
+
+    private final AtomicLong lastRefreshDurationNs =
+            new AtomicLong();
+
+    private final AtomicLong lastRefreshTimestampMs =
+            new AtomicLong();
 
     public RoutingMetricsCollector(
             @Value("${rabbit.mgmt.host}") String host,
@@ -33,7 +46,6 @@ public class RoutingMetricsCollector {
             @Value("${rabbit.mgmt.pass}") String pass,
             @Value("${rabbit.mgmt.vhost:/}") String virtualHost
     ) {
-
         this.virtualHost = virtualHost;
 
         this.client = RestClient.builder()
@@ -43,11 +55,109 @@ public class RoutingMetricsCollector {
                 .build();
     }
 
-    public QueueFeatures collect(String queueName) {
-        QueueInfo info = fetchQueueInfo(queueName);
+    /**
+     * Returns the most recently completed queue-state snapshot.
+     *
+     * Routing decisions therefore do not normally make synchronous
+     * RabbitMQ Management API calls.
+     */
+    public RoutingFeatures collectAll() {
+        RoutingFeatures snapshot =
+                latestSnapshot.get();
+
+        if (snapshot != null) {
+            return snapshot;
+        }
+
+        /*
+         * Startup fallback only. This may occur before the first
+         * scheduled refresh has completed.
+         */
+        return refreshNow();
+    }
+
+    @Scheduled(
+            fixedDelayString =
+                    "${routing.queue-state-refresh-ms:1000}"
+    )
+    public void refreshSnapshot() {
+        try {
+            refreshNow();
+        } catch (RuntimeException exception) {
+            logger.warn(
+                    "Failed to refresh RabbitMQ queue-state snapshot",
+                    exception
+            );
+        }
+    }
+
+    public long getLastRefreshDurationNs() {
+        return lastRefreshDurationNs.get();
+    }
+
+    public long getLastRefreshTimestampMs() {
+        return lastRefreshTimestampMs.get();
+    }
+
+    private synchronized RoutingFeatures refreshNow() {
+        long startedAtNs =
+                System.nanoTime();
+
+        long observationTimestampNs =
+                System.nanoTime();
+
+        QueueFeatures queue1 =
+                fetchFeatures(
+                        QueueNames.QUEUE_1,
+                        observationTimestampNs
+                );
+
+        QueueFeatures queue2 =
+                fetchFeatures(
+                        QueueNames.QUEUE_2,
+                        observationTimestampNs
+                );
+
+        QueueFeatures queue3 =
+                fetchFeatures(
+                        QueueNames.QUEUE_3,
+                        observationTimestampNs
+                );
+
+        RoutingFeatures snapshot =
+                new RoutingFeatures(
+                        Map.of(
+                                QueueNames.QUEUE_1, queue1,
+                                QueueNames.QUEUE_2, queue2,
+                                QueueNames.QUEUE_3, queue3
+                        )
+                );
+
+        latestSnapshot.set(snapshot);
+
+        lastRefreshTimestampMs.set(
+                System.currentTimeMillis()
+        );
+
+        lastRefreshDurationNs.set(
+                System.nanoTime() - startedAtNs
+        );
+
+        return snapshot;
+    }
+
+    private QueueFeatures fetchFeatures(
+            String queueName,
+            long observationTimestampNs
+    ) {
+        QueueInfo info =
+                fetchQueueInfo(queueName);
 
         double queueLength =
-                Math.max(info.messages_ready(), 0.0);
+                Math.max(
+                        info.messages_ready(),
+                        0.0
+                );
 
         double arrivalRate =
                 readPublishRate(info);
@@ -62,7 +172,11 @@ public class RoutingMetricsCollector {
                 );
 
         double backlogGrowth =
-                calculateBacklogGrowth(queueName);
+                calculateBacklogGrowth(
+                        queueName,
+                        queueLength,
+                        observationTimestampNs
+                );
 
         return new QueueFeatures(
                 queueLength,
@@ -73,27 +187,20 @@ public class RoutingMetricsCollector {
         );
     }
 
-    public RoutingFeatures collectAll() {
-        return new RoutingFeatures(
-                Map.of(
-                        QueueNames.QUEUE_1,
-                        collect(QueueNames.QUEUE_1),
-
-                        QueueNames.QUEUE_2,
-                        collect(QueueNames.QUEUE_2),
-
-                        QueueNames.QUEUE_3,
-                        collect(QueueNames.QUEUE_3)
-                )
-        );
-    }
-
-    private QueueInfo fetchQueueInfo(String queueName) {
+    private QueueInfo fetchQueueInfo(
+            String queueName
+    ) {
         try {
             QueueInfo info = client.get()
-                    .uri(uriBuilder -> uriBuilder
-                            .pathSegment("queues", virtualHost, queueName)
-                            .build())
+                    .uri(uriBuilder ->
+                            uriBuilder
+                                    .pathSegment(
+                                            "queues",
+                                            virtualHost,
+                                            queueName
+                                    )
+                                    .build()
+                    )
                     .retrieve()
                     .body(QueueInfo.class);
 
@@ -105,12 +212,20 @@ public class RoutingMetricsCollector {
             }
 
             return info;
-        } catch (HttpClientErrorException.NotFound exception) {
+
+        } catch (
+                HttpClientErrorException.NotFound exception
+        ) {
             throw new IllegalStateException(
-                    "RabbitMQ queue '%s' was not found in virtual host '%s'"
-                            .formatted(queueName, virtualHost),
+                    "RabbitMQ queue '%s' was not found "
+                            + "in virtual host '%s'"
+                            .formatted(
+                                    queueName,
+                                    virtualHost
+                            ),
                     exception
             );
+
         } catch (RestClientException exception) {
             throw new IllegalStateException(
                     "Failed to retrieve RabbitMQ metrics for queue: "
@@ -120,15 +235,51 @@ public class RoutingMetricsCollector {
         }
     }
 
-    private double calculateBacklogGrowth(String queueName) {
-        BacklogObservation observation =
-                backlogObservations.get(queueName);
+    private double calculateBacklogGrowth(
+            String queueName,
+            double currentQueueLength,
+            long nowNs
+    ) {
+        final double[] growthHolder = {0.0};
 
-        if (observation == null) {
-            return 0.0;
-        }
+        backlogObservations.compute(
+                queueName,
+                (key, previous) -> {
 
-        return observation.growth();
+                    double growth = 0.0;
+
+                    if (previous != null) {
+                        double elapsedSeconds =
+                                (
+                                        nowNs
+                                                - previous.timestampNanos()
+                                )
+                                        / 1_000_000_000.0;
+
+                        if (elapsedSeconds > 0.0) {
+                            growth =
+                                    (
+                                            currentQueueLength
+                                                    - previous.queueLength()
+                                    )
+                                            / elapsedSeconds;
+                        }
+
+                        if (!Double.isFinite(growth)) {
+                            growth = 0.0;
+                        }
+                    }
+
+                    growthHolder[0] = growth;
+
+                    return new BacklogObservation(
+                            currentQueueLength,
+                            nowNs
+                    );
+                }
+        );
+
+        return growthHolder[0];
     }
 
     private double calculateUtilisation(
@@ -142,113 +293,63 @@ public class RoutingMetricsCollector {
         }
 
         double utilisation =
-                arrivalRate / consumerThroughput;
+                arrivalRate
+                        / consumerThroughput;
 
         if (!Double.isFinite(utilisation)) {
             return MAX_UTILISATION;
         }
 
         return Math.min(
-                Math.max(utilisation, 0.0),
+                Math.max(
+                        utilisation,
+                        0.0
+                ),
                 MAX_UTILISATION
         );
     }
 
-    private double readPublishRate(QueueInfo info) {
-        if (info.message_stats() == null
-                || info.message_stats().publish_details() == null) {
+    private double readPublishRate(
+            QueueInfo info
+    ) {
+        if (
+                info.message_stats() == null
+                        || info.message_stats()
+                        .publish_details() == null
+        ) {
             return 0.0;
         }
 
         return Math.max(
-                info.message_stats().publish_details().rate(),
+                info.message_stats()
+                        .publish_details()
+                        .rate(),
                 0.0
         );
     }
 
-    private double readAckRate(QueueInfo info) {
-        if (info.message_stats() == null
-                || info.message_stats().ack_details() == null) {
+    private double readAckRate(
+            QueueInfo info
+    ) {
+        if (
+                info.message_stats() == null
+                        || info.message_stats()
+                        .ack_details() == null
+        ) {
             return 0.0;
         }
 
         return Math.max(
-                info.message_stats().ack_details().rate(),
+                info.message_stats()
+                        .ack_details()
+                        .rate(),
                 0.0
-        );
-    }
-
-    @Scheduled(
-            fixedRateString = "${routing.backlog-window-ms:1000}"
-    )
-    public void sampleBacklogGrowth() {
-        sampleBacklogGrowthSafely(QueueNames.QUEUE_1);
-        sampleBacklogGrowthSafely(QueueNames.QUEUE_2);
-        sampleBacklogGrowthSafely(QueueNames.QUEUE_3);
-    }
-
-    private void sampleBacklogGrowthSafely(String queueName) {
-        try {
-            sampleBacklogGrowth(queueName);
-        } catch (RuntimeException exception) {
-            logger.warn(
-                    "Failed to sample backlog growth for queue {}",
-                    queueName,
-                    exception
-            );
-        }
-    }
-
-    private void sampleBacklogGrowth(String queueName) {
-        QueueInfo info = fetchQueueInfo(queueName);
-
-        double currentQueueLength =
-                Math.max(info.messages_ready(), 0.0);
-
-        long now = System.nanoTime();
-
-        backlogObservations.compute(
-                queueName,
-                (key, previous) -> {
-
-                    if (previous == null) {
-                        return new BacklogObservation(
-                                currentQueueLength,
-                                now,
-                                0.0
-                        );
-                    }
-
-                    double elapsedSeconds =
-                            (now - previous.timestampNanos())
-                                    / 1_000_000_000.0;
-
-                    double growth = 0.0;
-
-                    if (elapsedSeconds > 0.0) {
-                        growth =
-                                (currentQueueLength
-                                        - previous.queueLength())
-                                        / elapsedSeconds;
-                    }
-
-                    if (!Double.isFinite(growth)) {
-                        growth = 0.0;
-                    }
-
-                    return new BacklogObservation(
-                            currentQueueLength,
-                            now,
-                            growth
-                    );
-                }
         );
     }
 
     private record BacklogObservation(
             double queueLength,
-            long timestampNanos,
-            double growth
+            long timestampNanos
     ) {
     }
 

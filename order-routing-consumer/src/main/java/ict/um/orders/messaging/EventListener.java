@@ -112,7 +112,14 @@ public class EventListener {
 
         validate(routedMessage);
 
-        long consumerStartedAt = System.currentTimeMillis();
+        /*
+         * This timestamp represents admission to the processing
+         * attempt that successfully passes resequencing.
+         *
+         * Future events that are buffered are not logged until
+         * they are later released and processed.
+         */
+        long processingStartedAt = System.currentTimeMillis();
 
         logger.info(
                 "Received {} from queue {}",
@@ -163,14 +170,14 @@ public class EventListener {
                             routedMessage.getRoutingDecisionId(),
                             routedMessage.getSelectedQueue(),
                             routedMessage.getPublishedAt(),
-                            consumerStartedAt
+                            processingStartedAt
                     )
             );
 
             eventMetricsLogger.ifPresent(logger ->
                     logger.logEvent(
                             routedMessage,
-                            consumerStartedAt,
+                            processingStartedAt,
                             consumerCompletedAt
                     )
             );
