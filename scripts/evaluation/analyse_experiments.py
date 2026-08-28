@@ -14,6 +14,8 @@ REQUIRED_FILES = (
     "routing_metrics.csv",
 )
 
+EXPECTED_EVALUATION_RUNS = 45
+
 
 def load_metadata(run_dir: Path) -> dict:
     metadata_path = run_dir / "run_metadata.json"
@@ -38,6 +40,233 @@ def percentile(series: pd.Series, quantile: float) -> float:
         return float("nan")
 
     return float(values.quantile(quantile))
+
+
+def as_bool(value) -> bool:
+    if isinstance(value, str):
+        return value.strip().lower() == "true"
+
+    return bool(value)
+
+
+def validate_run_integrity(
+        run_dir: Path,
+        metadata: dict,
+        events: pd.DataFrame,
+        queue_metrics: pd.DataFrame,
+        routing_metrics: pd.DataFrame,
+) -> None:
+    run_id = metadata.get("run_id")
+
+    if not run_id:
+        raise ValueError(f"{run_dir}: run metadata has no run_id")
+
+    if events.empty:
+        raise ValueError(f"{run_id}: event_metrics.csv is empty")
+
+    if queue_metrics.empty:
+        raise ValueError(f"{run_id}: queue_metrics.csv is empty")
+
+    if routing_metrics.empty:
+        raise ValueError(f"{run_id}: routing_metrics.csv is empty")
+
+    for dataframe_name, dataframe in (
+            ("event_metrics.csv", events),
+            ("queue_metrics.csv", queue_metrics),
+            ("routing_metrics.csv", routing_metrics),
+    ):
+        if "run_id" not in dataframe.columns:
+            raise ValueError(
+                f"{run_id}: {dataframe_name} has no run_id column"
+            )
+
+        observed_run_ids = set(
+            dataframe["run_id"].dropna().astype(str)
+        )
+
+        if observed_run_ids != {str(run_id)}:
+            raise ValueError(
+                f"{run_id}: unexpected run_id values in "
+                f"{dataframe_name}: {sorted(observed_run_ids)}"
+            )
+
+    required_event_columns = {
+        "routing_decision_id",
+        "selected_queue",
+        "published_at",
+        "processing_started_at",
+        "consumer_completed_at",
+        "queueing_latency_ms",
+        "processing_time_ms",
+    }
+
+    missing_event_columns = (
+            required_event_columns - set(events.columns)
+    )
+
+    if missing_event_columns:
+        raise ValueError(
+            f"{run_id}: event_metrics.csv missing columns: "
+            f"{sorted(missing_event_columns)}"
+        )
+
+    required_routing_columns = {
+        "routing_decision_id",
+        "selected_queue",
+        "routing_overhead_ns",
+    }
+
+    missing_routing_columns = (
+            required_routing_columns - set(routing_metrics.columns)
+    )
+
+    if missing_routing_columns:
+        raise ValueError(
+            f"{run_id}: routing_metrics.csv missing columns: "
+            f"{sorted(missing_routing_columns)}"
+        )
+
+    required_queue_columns = {
+        "elapsed_ms",
+        "phase",
+        "q1_length",
+        "q2_length",
+        "q3_length",
+        "aggregate_backlog",
+    }
+
+    missing_queue_columns = (
+            required_queue_columns - set(queue_metrics.columns)
+    )
+
+    if missing_queue_columns:
+        raise ValueError(
+            f"{run_id}: queue_metrics.csv missing columns: "
+            f"{sorted(missing_queue_columns)}"
+        )
+
+    event_ids = events["routing_decision_id"].astype(str)
+    routing_ids = routing_metrics["routing_decision_id"].astype(str)
+
+    if event_ids.duplicated().any():
+        duplicates = event_ids[event_ids.duplicated()].unique()
+        raise ValueError(
+            f"{run_id}: duplicate routing_decision_id values "
+            f"in event_metrics.csv: {duplicates[:5].tolist()}"
+        )
+
+    if routing_ids.duplicated().any():
+        duplicates = routing_ids[routing_ids.duplicated()].unique()
+        raise ValueError(
+            f"{run_id}: duplicate routing_decision_id values "
+            f"in routing_metrics.csv: {duplicates[:5].tolist()}"
+        )
+
+    event_id_set = set(event_ids)
+    routing_id_set = set(routing_ids)
+
+    if event_id_set != routing_id_set:
+        missing_from_events = routing_id_set - event_id_set
+        missing_from_routing = event_id_set - routing_id_set
+
+        raise ValueError(
+            f"{run_id}: routing/event decision IDs do not match. "
+            f"Missing from events={len(missing_from_events)}, "
+            f"missing from routing={len(missing_from_routing)}"
+        )
+
+    joined = events[
+        ["routing_decision_id", "selected_queue"]
+    ].merge(
+        routing_metrics[
+            ["routing_decision_id", "selected_queue"]
+        ],
+        on="routing_decision_id",
+        how="inner",
+        suffixes=("_event", "_routing"),
+        validate="one_to_one",
+    )
+
+    queue_mismatch = (
+            joined["selected_queue_event"]
+            != joined["selected_queue_routing"]
+    )
+
+    if queue_mismatch.any():
+        raise ValueError(
+            f"{run_id}: selected_queue differs between "
+            f"routing and event metrics for "
+            f"{int(queue_mismatch.sum())} event(s)"
+        )
+
+    workload_duration_seconds = metadata.get(
+        "workload_duration_seconds"
+    )
+
+    if workload_duration_seconds is None:
+        raise ValueError(
+            f"{run_id}: workload_duration_seconds missing "
+            "from metadata"
+        )
+
+    elapsed = pd.to_numeric(
+        queue_metrics["elapsed_ms"],
+        errors="coerce",
+    )
+
+    active_window = queue_metrics[
+        elapsed <= float(workload_duration_seconds) * 1000.0
+        ]
+
+    if active_window.empty:
+        raise ValueError(
+            f"{run_id}: no queue samples found during "
+            "the workload-generation window"
+        )
+
+
+def select_active_queue_window(
+        queue_metrics: pd.DataFrame,
+        metadata: dict,
+) -> pd.DataFrame:
+    """
+    Select queue samples collected while new workload is being
+    generated.
+
+    General backlog and queue-imbalance summaries are restricted
+    to this common observation window so that runs with different
+    drain durations are compared over an equivalent period.
+
+    Recovery is calculated separately and may use later samples.
+    """
+    workload_duration_seconds = metadata.get(
+        "workload_duration_seconds"
+    )
+
+    if workload_duration_seconds is None:
+        raise ValueError(
+            "workload_duration_seconds is missing from metadata"
+        )
+
+    metrics = queue_metrics.copy()
+
+    metrics["elapsed_ms"] = pd.to_numeric(
+        metrics["elapsed_ms"],
+        errors="coerce",
+    )
+
+    metrics = metrics.dropna(
+        subset=["elapsed_ms"]
+    ).sort_values("elapsed_ms")
+
+    workload_end_ms = (
+            float(workload_duration_seconds) * 1000.0
+    )
+
+    return metrics[
+        (metrics["elapsed_ms"] >= 0)
+        & (metrics["elapsed_ms"] <= workload_end_ms)
+        ].copy()
 
 
 def calculate_latency_metrics(events: pd.DataFrame) -> dict:
@@ -77,12 +306,19 @@ def calculate_processing_metrics(events: pd.DataFrame) -> dict:
         }
 
     return {
-        "mean_processing_time_ms": float(processing_time.mean()),
-        "p95_processing_time_ms": percentile(processing_time, 0.95),
+        "mean_processing_time_ms": float(
+            processing_time.mean()
+        ),
+        "p95_processing_time_ms": percentile(
+            processing_time,
+            0.95,
+        ),
     }
 
 
-def calculate_backlog_metrics(queue_metrics: pd.DataFrame) -> dict:
+def calculate_backlog_metrics(
+        queue_metrics: pd.DataFrame,
+) -> dict:
     backlog = pd.to_numeric(
         queue_metrics["aggregate_backlog"],
         errors="coerce",
@@ -103,12 +339,13 @@ def calculate_backlog_metrics(queue_metrics: pd.DataFrame) -> dict:
         "max_backlog": float(backlog.max()),
     }
 
-def calculate_queue_imbalance(queue_metrics: pd.DataFrame) -> dict:
-    """
-    Queue imbalance is the standard deviation of the three queue
-    lengths at each sampling point.
 
-    The run-level metrics summarise the resulting imbalance values.
+def calculate_queue_imbalance(
+        queue_metrics: pd.DataFrame,
+) -> dict:
+    """
+    Queue imbalance is the population standard deviation of the
+    three queue lengths at each queue-sampling point.
     """
     queue_lengths = queue_metrics[
         ["q1_length", "q2_length", "q3_length"]
@@ -127,31 +364,40 @@ def calculate_queue_imbalance(queue_metrics: pd.DataFrame) -> dict:
             "max_queue_imbalance": float("nan"),
         }
 
-    # Population standard deviation across the three queues.
     imbalance = valid.std(axis=1, ddof=0)
 
     return {
-        "mean_queue_imbalance": float(imbalance.mean()),
-        "median_queue_imbalance": float(imbalance.median()),
-        "p95_queue_imbalance": percentile(imbalance, 0.95),
-        "max_queue_imbalance": float(imbalance.max()),
+        "mean_queue_imbalance": float(
+            imbalance.mean()
+        ),
+        "median_queue_imbalance": float(
+            imbalance.median()
+        ),
+        "p95_queue_imbalance": percentile(
+            imbalance,
+            0.95,
+        ),
+        "max_queue_imbalance": float(
+            imbalance.max()
+        ),
     }
+
 
 def calculate_recovery_metrics(
         queue_metrics: pd.DataFrame,
         metadata: dict,
 ) -> dict:
     """
-    Recovery time is measured from the configured end of the burst
-    until aggregate backlog returns to or below the median pre-burst
-    backlog for three consecutive queue-sampling intervals.
+    Recovery time is measured from the configured burst end until
+    aggregate backlog returns to or below the median pre-burst
+    backlog for three consecutive sampling intervals.
 
-    Recovery is reported only for burst-enabled runs.
+    Post-generation samples remain eligible because recovery may
+    occur during the drain phase.
     """
-    burst_enabled = metadata.get("burst_enabled", False)
-
-    if isinstance(burst_enabled, str):
-        burst_enabled = burst_enabled.strip().lower() == "true"
+    burst_enabled = as_bool(
+        metadata.get("burst_enabled", False)
+    )
 
     if not burst_enabled:
         return {
@@ -160,10 +406,17 @@ def calculate_recovery_metrics(
             "recovery_observed": False,
         }
 
-    burst_start_seconds = metadata.get("burst_start_seconds")
-    burst_duration_seconds = metadata.get("burst_duration_seconds")
+    burst_start_seconds = metadata.get(
+        "burst_start_seconds"
+    )
+    burst_duration_seconds = metadata.get(
+        "burst_duration_seconds"
+    )
 
-    if burst_start_seconds is None or burst_duration_seconds is None:
+    if (
+            burst_start_seconds is None
+            or burst_duration_seconds is None
+    ):
         return {
             "pre_burst_median_backlog": float("nan"),
             "recovery_time_seconds": float("nan"),
@@ -222,8 +475,15 @@ def calculate_recovery_metrics(
             post_burst["aggregate_backlog"] <= baseline
     )
 
-    recovered = post_burst["at_or_below_baseline"].to_numpy()
-    elapsed = post_burst["elapsed_ms"].to_numpy()
+    recovered = (
+        post_burst["at_or_below_baseline"]
+        .to_numpy()
+    )
+
+    elapsed = (
+        post_burst["elapsed_ms"]
+        .to_numpy()
+    )
 
     for index in range(len(recovered) - 2):
         if (
@@ -249,14 +509,15 @@ def calculate_recovery_metrics(
         "recovery_observed": False,
     }
 
+
 def calculate_throughput(events: pd.DataFrame) -> dict:
     """
-    Throughput is measured as completed events divided by the elapsed
-    interval between the earliest consumer start and latest consumer
-    completion.
+    Observed consumer-side throughput is completed events divided
+    by the elapsed interval between the first processing start and
+    the final processing completion.
 
-    This measures observed consumer-side processing throughput rather
-    than RabbitMQ's acknowledgement-rate feature.
+    The interval includes drain time where required so that all
+    completed events in the run are represented.
     """
     starts = pd.to_numeric(
         events["processing_started_at"],
@@ -279,7 +540,9 @@ def calculate_throughput(events: pd.DataFrame) -> dict:
     first_start = starts[valid].min()
     last_completion = completions[valid].max()
 
-    interval_seconds = (last_completion - first_start) / 1000.0
+    interval_seconds = (
+                               last_completion - first_start
+                       ) / 1000.0
 
     if interval_seconds <= 0:
         return {
@@ -290,8 +553,10 @@ def calculate_throughput(events: pd.DataFrame) -> dict:
     completed_events = int(valid.sum())
 
     return {
-        "throughput_events_per_second": completed_events / interval_seconds,
-        "throughput_interval_seconds": interval_seconds,
+        "throughput_events_per_second":
+            completed_events / interval_seconds,
+        "throughput_interval_seconds":
+            float(interval_seconds),
     }
 
 
@@ -312,16 +577,28 @@ def calculate_routing_overhead_metrics(
             "p99_routing_overhead_us": float("nan"),
         }
 
-    # Convert nanoseconds to microseconds for easier interpretation.
     overhead_us = overhead_ns / 1_000.0
 
     return {
-        "routing_decision_count": int(len(overhead_us)),
-        "mean_routing_overhead_us": float(overhead_us.mean()),
-        "median_routing_overhead_us": float(overhead_us.median()),
-        "p95_routing_overhead_us": percentile(overhead_us, 0.95),
-        "p99_routing_overhead_us": percentile(overhead_us, 0.99),
+        "routing_decision_count": int(
+            len(overhead_us)
+        ),
+        "mean_routing_overhead_us": float(
+            overhead_us.mean()
+        ),
+        "median_routing_overhead_us": float(
+            overhead_us.median()
+        ),
+        "p95_routing_overhead_us": percentile(
+            overhead_us,
+            0.95,
+        ),
+        "p99_routing_overhead_us": percentile(
+            overhead_us,
+            0.99,
+        ),
     }
+
 
 def calculate_model_inference_metrics(
         routing_metrics: pd.DataFrame,
@@ -351,23 +628,29 @@ def calculate_model_inference_metrics(
             "p99_model_inference_us": float("nan"),
         }
 
-    inference_us = (
-            inference_ns
-            / 1_000.0
-    )
+    inference_us = inference_ns / 1_000.0
 
     return {
-        "mean_model_inference_us":
-            float(inference_us.mean()),
-        "median_model_inference_us":
-            float(inference_us.median()),
-        "p95_model_inference_us":
-            percentile(inference_us, 0.95),
-        "p99_model_inference_us":
-            percentile(inference_us, 0.99),
+        "mean_model_inference_us": float(
+            inference_us.mean()
+        ),
+        "median_model_inference_us": float(
+            inference_us.median()
+        ),
+        "p95_model_inference_us": percentile(
+            inference_us,
+            0.95,
+        ),
+        "p99_model_inference_us": percentile(
+            inference_us,
+            0.99,
+        ),
     }
 
-def calculate_queue_distribution(events: pd.DataFrame) -> dict:
+
+def calculate_queue_distribution(
+        events: pd.DataFrame,
+) -> dict:
     counts = events["selected_queue"].value_counts()
 
     return {
@@ -382,29 +665,52 @@ def calculate_queue_distribution(events: pd.DataFrame) -> dict:
         ),
     }
 
+
 def calculate_sampling_quality(
         queue_metrics: pd.DataFrame,
+        active_queue_metrics: pd.DataFrame,
 ) -> dict:
-    elapsed = pd.to_numeric(
-        queue_metrics["elapsed_ms"],
-        errors="coerce",
-    ).dropna().sort_values()
+    """
+    Report sampling quality separately for the active workload
+    window and for the complete recorded queue-metrics file.
 
-    if len(elapsed) < 2:
-        return {
-            "max_queue_sampling_gap_seconds":
-                float("nan"),
-        }
+    The complete-file gap is diagnostic only. Post-workload
+    orchestration or idle time must not be interpreted as an
+    active-workload sampling failure.
+    """
 
-    gaps_ms = (
-        elapsed.diff()
-        .dropna()
-    )
+    def maximum_gap_seconds(
+            dataframe: pd.DataFrame,
+    ) -> float:
+        elapsed = pd.to_numeric(
+            dataframe["elapsed_ms"],
+            errors="coerce",
+        ).dropna().sort_values()
+
+        if len(elapsed) < 2:
+            return float("nan")
+
+        gaps_ms = elapsed.diff().dropna()
+
+        return float(
+            gaps_ms.max() / 1000.0
+        )
 
     return {
-        "max_queue_sampling_gap_seconds":
-            float(gaps_ms.max() / 1000.0),
+        "max_active_queue_sampling_gap_seconds":
+            maximum_gap_seconds(
+                active_queue_metrics
+            ),
+        "max_recorded_queue_sampling_gap_seconds":
+            maximum_gap_seconds(
+                queue_metrics
+            ),
+        "active_queue_sample_count":
+            int(len(active_queue_metrics)),
+        "recorded_queue_sample_count":
+            int(len(queue_metrics)),
     }
+
 
 def analyse_run(run_dir: Path) -> dict:
     for filename in REQUIRED_FILES:
@@ -412,61 +718,123 @@ def analyse_run(run_dir: Path) -> dict:
 
         if not path.exists():
             raise FileNotFoundError(
-                f"Run directory {run_dir} is missing {filename}"
+                f"Run directory {run_dir} "
+                f"is missing {filename}"
             )
 
     metadata = load_metadata(run_dir)
 
-    events = load_csv(run_dir, "event_metrics.csv")
-    queue_metrics = load_csv(run_dir, "queue_metrics.csv")
-    routing_metrics = load_csv(run_dir, "routing_metrics.csv")
+    events = load_csv(
+        run_dir,
+        "event_metrics.csv",
+    )
+
+    queue_metrics = load_csv(
+        run_dir,
+        "queue_metrics.csv",
+    )
+
+    routing_metrics = load_csv(
+        run_dir,
+        "routing_metrics.csv",
+    )
+
+    validate_run_integrity(
+        run_dir,
+        metadata,
+        events,
+        queue_metrics,
+        routing_metrics,
+    )
+
+    active_queue_metrics = (
+        select_active_queue_window(
+            queue_metrics,
+            metadata,
+        )
+    )
 
     summary = {
         "run_id": metadata.get("run_id"),
         "strategy": metadata.get("strategy"),
         "random_seed": metadata.get("random_seed"),
-        "workload_duration_seconds": metadata.get(
-            "workload_duration_seconds"
-        ),
-        "arrival_scale": metadata.get("arrival_scale"),
-        "burst_enabled": metadata.get("burst_enabled"),
-        "burst_start_seconds": metadata.get(
-            "burst_start_seconds"
-        ),
-        "burst_duration_seconds": metadata.get(
-            "burst_duration_seconds"
-        ),
-        "burst_multiplier": metadata.get(
-            "burst_multiplier"
-        ),
-        "queue_sampling_interval_ms": metadata.get(
-            "queue_sampling_interval_ms"
-        ),
+        "workload_duration_seconds":
+            metadata.get(
+                "workload_duration_seconds"
+            ),
+        "arrival_scale":
+            metadata.get("arrival_scale"),
+        "burst_enabled":
+            metadata.get("burst_enabled"),
+        "burst_start_seconds":
+            metadata.get(
+                "burst_start_seconds"
+            ),
+        "burst_duration_seconds":
+            metadata.get(
+                "burst_duration_seconds"
+            ),
+        "burst_multiplier":
+            metadata.get(
+                "burst_multiplier"
+            ),
+        "queue_sampling_interval_ms":
+            metadata.get(
+                "queue_sampling_interval_ms"
+            ),
     }
 
-    summary.update(calculate_latency_metrics(events))
-    summary.update(calculate_processing_metrics(events))
-    summary.update(calculate_backlog_metrics(queue_metrics))
-    summary.update(calculate_queue_imbalance(queue_metrics))
-    summary.update(calculate_throughput(events))
     summary.update(
-        calculate_routing_overhead_metrics(routing_metrics)
+        calculate_latency_metrics(events)
     )
-    summary.update(calculate_queue_distribution(events))
+
+    summary.update(
+        calculate_processing_metrics(events)
+    )
+
+    summary.update(
+        calculate_backlog_metrics(
+            active_queue_metrics
+        )
+    )
+
+    summary.update(
+        calculate_queue_imbalance(
+            active_queue_metrics
+        )
+    )
+
+    summary.update(
+        calculate_throughput(events)
+    )
+
+    summary.update(
+        calculate_routing_overhead_metrics(
+            routing_metrics
+        )
+    )
+
+    summary.update(
+        calculate_queue_distribution(events)
+    )
+
     summary.update(
         calculate_recovery_metrics(
             queue_metrics,
             metadata,
         )
     )
+
     summary.update(
         calculate_model_inference_metrics(
             routing_metrics
         )
     )
+
     summary.update(
         calculate_sampling_quality(
-            queue_metrics
+            queue_metrics,
+            active_queue_metrics,
         )
     )
 
@@ -495,57 +863,123 @@ def find_run_directories(
                 continue
 
             if all(
-                    (run_directory / filename).is_file()
+                    (
+                            run_directory / filename
+                    ).is_file()
                     for filename in REQUIRED_FILES
             ):
-                run_dirs.append(run_directory)
+                run_dirs.append(
+                    run_directory
+                )
 
     return run_dirs
 
 
-def analyse_all_runs(data_dir: Path) -> pd.DataFrame:
-    run_dirs = find_run_directories(data_dir)
+def analyse_all_runs(
+        data_dir: Path,
+) -> pd.DataFrame:
+    run_dirs = find_run_directories(
+        data_dir
+    )
 
     if not run_dirs:
         raise RuntimeError(
-            f"No valid experiment run directories found under {data_dir}"
+            "No valid experiment run directories "
+            f"found under {data_dir}"
         )
 
     summaries = []
 
     for run_dir in run_dirs:
-        try:
-            metadata = load_metadata(run_dir)
+        metadata = load_metadata(
+            run_dir
+        )
 
-            strategy = str(
-                metadata.get("strategy", "")
-            ).strip().lower()
-
-            if strategy == "training":
-                print(f"Skipping training run: {run_dir.name}")
-                continue
-
-            print(f"Analysing {run_dir.name}...")
-            summaries.append(analyse_run(run_dir))
-
-        except Exception as exc:
-            print(
-                f"WARNING: Failed to analyse {run_dir.name}: {exc}"
+        strategy = str(
+            metadata.get(
+                "strategy",
+                "",
             )
+        ).strip().lower()
+
+        if strategy == "training":
+            print(
+                f"Skipping training run: "
+                f"{run_dir.name}"
+            )
+            continue
+
+        print(
+            f"Analysing {run_dir.name}..."
+        )
+
+        summaries.append(
+            analyse_run(run_dir)
+        )
 
     if not summaries:
         raise RuntimeError(
-            "No evaluation runs could be analysed successfully."
+            "No evaluation runs could "
+            "be analysed successfully."
         )
 
-    return pd.DataFrame(summaries)
+    results = pd.DataFrame(
+        summaries
+    )
+
+    if len(results) != EXPECTED_EVALUATION_RUNS:
+        raise RuntimeError(
+            "Expected "
+            f"{EXPECTED_EVALUATION_RUNS} "
+            "final evaluation runs, but "
+            f"analysed {len(results)}."
+        )
+
+    duplicate_run_ids = (
+        results["run_id"]
+        .duplicated()
+    )
+
+    if duplicate_run_ids.any():
+        duplicates = results.loc[
+            duplicate_run_ids,
+            "run_id",
+        ].tolist()
+
+        raise RuntimeError(
+            "Duplicate run_id values "
+            f"found: {duplicates}"
+        )
+
+    strategy_counts = (
+        results["strategy"]
+        .value_counts()
+        .to_dict()
+    )
+
+    expected_strategy_counts = {
+        "shortest-queue": 15,
+        "little-law": 15,
+        "ml": 15,
+    }
+
+    if strategy_counts != expected_strategy_counts:
+        raise RuntimeError(
+            "Unexpected strategy run counts. "
+            f"Expected "
+            f"{expected_strategy_counts}, "
+            f"observed {strategy_counts}"
+        )
+
+    return results
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
-            "Analyse routing experiment output and produce one "
-            "summary row per experimental run."
+            "Analyse routing experiment output "
+            "and produce one summary row per "
+            "experimental run."
         )
     )
 
@@ -554,18 +988,21 @@ def main() -> None:
         type=Path,
         default=Path("data"),
         help=(
-            "Directory containing experimental run directories "
-            "(default: data)"
+            "Directory containing experimental "
+            "run directories (default: data)"
         ),
     )
 
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("data/evaluation_summary.csv"),
+        default=Path(
+            "data/evaluation_summary.csv"
+        ),
         help=(
             "Output CSV path "
-            "(default: data/evaluation_summary.csv)"
+            "(default: "
+            "data/evaluation_summary.csv)"
         ),
     )
 
@@ -573,10 +1010,13 @@ def main() -> None:
 
     if not args.data_dir.exists():
         raise FileNotFoundError(
-            f"Data directory does not exist: {args.data_dir}"
+            "Data directory does not exist: "
+            f"{args.data_dir}"
         )
 
-    results = analyse_all_runs(args.data_dir)
+    results = analyse_all_runs(
+        args.data_dir
+    )
 
     sort_columns = [
         column
@@ -609,10 +1049,35 @@ def main() -> None:
     )
 
     print()
-    print(f"Analysed {len(results)} run(s).")
-    print(f"Summary written to: {args.output}")
+    print(
+        f"Analysed {len(results)} run(s)."
+    )
+    print(
+        f"Summary written to: "
+        f"{args.output}"
+    )
+
     print()
-    print(results.to_string(index=False))
+    print(
+        "Strategy counts:"
+    )
+    print(
+        results["strategy"]
+        .value_counts()
+        .sort_index()
+        .to_string()
+    )
+
+    print()
+    print(
+        "Maximum active-workload "
+        "queue-sampling gap:"
+    )
+    print(
+        f"{results[
+            'max_active_queue_sampling_gap_seconds'
+        ].max():.3f} s"
+    )
 
 
 if __name__ == "__main__":

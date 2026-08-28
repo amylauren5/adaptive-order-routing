@@ -75,13 +75,28 @@ RANDOM_FOREST_CONFIGS = [
     {
         "n_estimators": 500,
         "min_samples_leaf": 4,
+        "max_features": "sqrt",
+    },
+    {
+        "n_estimators": 300,
+        "min_samples_leaf": 1,
+        "max_features": 1.0,
+    },
+    {
+        "n_estimators": 400,
+        "min_samples_leaf": 2,
+        "max_features": 1.0,
+    },
+    {
+        "n_estimators": 500,
+        "min_samples_leaf": 4,
         "max_features": 1.0,
     },
 ]
 
 XGBOOST_CONFIGS = [
     {
-        "n_estimators": 300,
+        "n_estimators": 400,
         "learning_rate": 0.05,
         "max_depth": 4,
         "min_child_weight": 2,
@@ -91,11 +106,20 @@ XGBOOST_CONFIGS = [
     },
     {
         "n_estimators": 500,
-        "learning_rate": 0.05,
-        "max_depth": 6,
-        "min_child_weight": 2,
-        "subsample": 0.8,
-        "colsample_bytree": 0.8,
+        "learning_rate": 0.03,
+        "max_depth": 4,
+        "min_child_weight": 4,
+        "subsample": 0.9,
+        "colsample_bytree": 0.9,
+        "reg_lambda": 1.0,
+    },
+    {
+        "n_estimators": 700,
+        "learning_rate": 0.03,
+        "max_depth": 5,
+        "min_child_weight": 4,
+        "subsample": 0.9,
+        "colsample_bytree": 0.9,
         "reg_lambda": 1.0,
     },
     {
@@ -106,6 +130,24 @@ XGBOOST_CONFIGS = [
         "subsample": 0.9,
         "colsample_bytree": 0.9,
         "reg_lambda": 1.0,
+    },
+    {
+        "n_estimators": 900,
+        "learning_rate": 0.02,
+        "max_depth": 5,
+        "min_child_weight": 4,
+        "subsample": 0.9,
+        "colsample_bytree": 0.9,
+        "reg_lambda": 2.0,
+    },
+    {
+        "n_estimators": 900,
+        "learning_rate": 0.02,
+        "max_depth": 6,
+        "min_child_weight": 6,
+        "subsample": 0.9,
+        "colsample_bytree": 0.9,
+        "reg_lambda": 2.0,
     },
 ]
 
