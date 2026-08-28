@@ -8,7 +8,7 @@ The system uses Java, Spring Boot, Axon Framework, RabbitMQ, PostgreSQL and Web3
 - **Little's Law** — estimates waiting time using queue length and observed consumer throughput.
 - **ML Routing** — uses XGBoost to predict realised waiting time for each candidate queue and selects the lowest prediction.
 
-A separate round-robin training mode is used to collect supervised-learning data. Random Forest is retained as an offline ML baseline, while XGBoost is exported for Java runtime inference.
+A separate round-robin training mode is used to collect supervised-learning data without biasing observations towards either deterministic evaluation strategy. Random Forest is retained as an offline ML baseline, while XGBoost is used for Java runtime inference.
 
 Blockchain processing remains in the common consumer path using Ganache and Web3j.
 
@@ -26,6 +26,7 @@ adaptive-order-routing/
 ├── scripts/
 │   ├── start.sh
 │   ├── teardown.sh
+│   ├── requirements.txt
 │   ├── setup/
 │   │   ├── common.sh
 │   │   └── blockchain.sh
@@ -33,9 +34,9 @@ adaptive-order-routing/
 │   │   ├── run-training.sh
 │   │   ├── run-final-training.sh
 │   │   ├── build_training_datasets.py
-│   │   ├── train_models.py
-│   │   └── requirements.txt
+│   │   └── train_models.py
 │   └── evaluation/
+│       ├── run-calibration.sh
 │       ├── run-evaluation.sh
 │       ├── run-final-evaluation.sh
 │       └── analyse_experiments.py
@@ -58,7 +59,7 @@ Supporting services include Axon Server, RabbitMQ, PostgreSQL and Ganache.
 
 ## Prerequisites
 
-The project is intended to run from a Linux or Unix-like shell. On Windows, **WSL2 with Ubuntu 24.04 LTS** can be used.
+The project is intended to run from a Linux or Unix-like shell. On Windows, WSL2 with Ubuntu can be used.
 
 Required software:
 
@@ -70,7 +71,7 @@ Required software:
 - **Python virtual-environment support (`python3-venv`)**
 - **GNU OpenMP runtime (`libgomp1`)**
 
-On Ubuntu 24.04 / WSL2:
+On Ubuntu:
 
 ```bash
 sudo apt update
@@ -113,7 +114,7 @@ Install the required Python packages:
 
 ```bash
 .venv/bin/python -m pip install --upgrade pip
-.venv/bin/pip install -r ./scripts/ml-training/requirements.txt
+.venv/bin/pip install -r ./scripts/requirements.txt
 ```
 
 Verify the ML dependencies:
@@ -123,7 +124,7 @@ Verify the ML dependencies:
     "import numpy, pandas, sklearn, xgboost; print('ML dependencies OK')"
 ```
 
-The training scripts explicitly use:
+The experiment and training scripts explicitly use:
 
 ```text
 .venv/bin/python
@@ -223,7 +224,7 @@ Example:
     60
 ```
 
-The startup process configures Ganache, PostgreSQL, RabbitMQ and Axon Server before starting the consumer and producer applications.
+The startup process configures the supporting infrastructure before starting the consumer and producer applications.
 
 Reset the environment with:
 
@@ -231,7 +232,45 @@ Reset the environment with:
 ./scripts/teardown.sh
 ```
 
-The automated training and evaluation pipelines perform teardown between runs.
+The automated training and evaluation pipelines perform the required environment reset between experimental runs.
+
+## Workload Calibration
+
+Before model development and final routing evaluation, preliminary calibration is used to identify workload settings representing different levels of queueing pressure.
+
+The calibration procedure uses **shortest-queue routing** with the fixed calibration seed:
+
+```text
+9001
+```
+
+This keeps workload selection independent of ML routing performance.
+
+Run the reproducible calibration matrix with:
+
+```bash
+./scripts/evaluation/run-calibration.sh
+```
+
+The steady calibration matrix evaluates:
+
+| Scale | Burst | Multiplier | Burst duration | Duration |
+|---:|---|---:|---:|---:|
+| 8.0 | No | 1.0 | — | 60 s |
+| 7.0 | No | 1.0 | — | 60 s |
+| 5.0 | No | 1.0 | — | 60 s |
+| 3.0 | No | 1.0 | — | 60 s |
+
+The selected medium-load scale of `5.0` is then used for two burst configurations:
+
+| Condition | Scale | Burst | Multiplier | Burst duration | Duration |
+|---|---:|---|---:|---:|---:|
+| Strong short burst | 5.0 | Yes | 0.25 | 5 s | 60 s |
+| Moderate long burst | 5.0 | Yes | 0.50 | 10 s | 60 s |
+
+The calibration runner reproduces the preliminary workload-selection procedure and invokes the existing experiment-analysis pipeline over the generated measurements.
+
+Calibration is separate from model training and from the fixed 45-run final strategy comparison. The selected workload configurations are fixed before comparative routing evaluation.
 
 ## ML Training
 
@@ -267,7 +306,7 @@ Training outputs are written to:
 data/training/
 ```
 
-Each run produces observations and realised outcomes that are joined using the routing-decision UUID. Dataset preprocessing checks duplicate, unmatched and invalid records before model fitting.
+Each run produces routing observations and realised outcomes that are joined using the routing-decision UUID. Dataset preprocessing checks for duplicate, unmatched and invalid records before model fitting.
 
 ### Final Training Pipeline
 
@@ -301,15 +340,11 @@ Training seeds:
 | Strong short burst | 5.0 | Yes | 0.25 | 5 s | 60 s |
 | Moderate long burst | 5.0 | Yes | 0.50 | 10 s | 60 s |
 
-Model development uses workload-run-level train, validation and test separation.
+Model development uses complete workload runs for train, validation and held-out test separation rather than randomly splitting individual observations across those partitions.
 
-Random Forest is retained as an offline baseline. The selected XGBoost model and feature schema are copied to:
+Random Forest is retained as an offline baseline, while XGBoost is used for runtime routing.
 
-```text
-order-routing-producer/src/main/resources/models/
-├── xgboost-model.json
-└── model-schema.json
-```
+The training pipeline generates the XGBoost model and corresponding feature schema required by the producer for Java inference. These generated model artifacts are not treated as source files and can be recreated by running the training pipeline.
 
 The training scripts report the wall-clock duration of individual runs and of the complete final training pipeline.
 
@@ -348,7 +383,7 @@ Evaluation seeds:
 1005
 ```
 
-These are separate from the model-development seeds.
+These seeds are separate from both the calibration seed and the model-development seeds.
 
 | Condition | Scale | Burst | Multiplier | Burst duration | Duration |
 |---|---:|---|---:|---:|---:|
@@ -378,7 +413,7 @@ queue_metrics.csv
 event_metrics.csv
 ```
 
-The evaluation scripts verify these files before accepting a run as complete and report both individual-run and full-matrix script durations.
+The evaluation scripts verify the required files before accepting a run as complete and report both individual-run and full-matrix script durations.
 
 ## Analysing Results
 
@@ -390,7 +425,7 @@ After evaluation completes, run:
     --data-dir data
 ```
 
-The default run-level summary is:
+The default run-level summary is written to:
 
 ```text
 data/evaluation_summary.csv
@@ -402,11 +437,14 @@ The analysis includes:
 - processing time;
 - queue backlog and imbalance;
 - burst recovery behaviour;
+- throughput;
 - producer-side routing overhead;
 - ML prediction-pipeline time;
 - queue-sampling quality.
 
-Runs that do not recover before the experiment ends are retained and marked as non-recovered rather than silently discarded.
+For ordinary backlog and queue-imbalance comparisons, measurements are evaluated over the common active workload window. Burst recovery is evaluated using the post-burst trace.
+
+Runs that do not recover within the available observation period are retained and marked as non-recovered rather than silently discarded.
 
 ## Implementation Notes
 
@@ -422,11 +460,11 @@ utilisation
 backlog growth
 ```
 
-The supervised target is realised waiting time from event publication until the successful consumer processing attempt. Events buffered by per-order resequencing therefore include the time spent waiting for a predecessor.
+The supervised target is realised waiting time from event publication until the start of the successful semantic consumer-processing attempt. Events delayed by per-order resequencing therefore include the time spent waiting for a predecessor.
 
 Per-order resequencing is protected against concurrent listener execution, and already-processed sequence numbers are ignored to prevent duplicate lifecycle side effects.
 
-For ML routing, total producer-side routing overhead and ML prediction-pipeline time are recorded separately.
+For ML routing, total producer-side routing overhead and ML prediction-pipeline time are recorded separately. Queue-state telemetry is normally obtained from the cached snapshot and is therefore not synchronously fetched from RabbitMQ for each routing decision.
 
 The three processing queues use equivalent consumer settings:
 
@@ -439,9 +477,27 @@ acknowledgement mode = auto
 
 ## Reproducibility
 
-All final routing strategies should be executed on the same hardware and software environment.
+The experimental workflow separates three stages:
 
-The final thesis records the experimental host specification together with the relevant Java, Python, Docker, RabbitMQ, Axon Server and PostgreSQL versions.
+```text
+workload calibration
+model development
+final routing evaluation
+```
+
+These stages use separate seed sets:
+
+```text
+Calibration:       9001
+Model development: 2001–2005
+Final evaluation:  1001–1005
+```
+
+The final routing strategies should be executed on the same hardware and software environment.
+
+The dissertation records the experimental host specification together with the relevant Java, Python, Docker, RabbitMQ, Axon Server and PostgreSQL versions.
+
+Each experimental run records its configuration and measurements using a run-specific identifier and output directory. The calibration, training and final-evaluation scripts provide reproducible entry points for the corresponding stages of the experimental workflow.
 
 Blockchain processing remains in the common consumer path for all routing strategies so that it contributes consistently to consumer load.
 
