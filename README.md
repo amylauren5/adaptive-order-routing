@@ -14,37 +14,25 @@ Blockchain processing remains in the common consumer path using Ganache and Web3
 
 ## Author
 
-**amylauren5**
+**Amy Lauren Abela**
 
 ## Project Structure
 
 ```text
 adaptive-order-routing/
-├── order-routing-shared/
-├── order-routing-producer/
-├── order-routing-consumer/
+├── order-routing-shared/         # Shared commands, events and messaging types
+├── order-routing-producer/       # Workload generation, routing and ML inference
+├── order-routing-consumer/       # Event consumption, resequencing and processing
 ├── scripts/
-│   ├── start.sh
-│   ├── teardown.sh
-│   ├── requirements.txt
-│   ├── setup/
-│   │   ├── common.sh
-│   │   └── blockchain.sh
-│   ├── ml-training/
-│   │   ├── run-training.sh
-│   │   ├── run-final-training.sh
-│   │   ├── build_training_datasets.py
-│   │   └── train_models.py
-│   └── evaluation/
-│       ├── run-calibration.sh
-│       ├── run-evaluation.sh
-│       ├── run-final-evaluation.sh
-│       └── analyse_experiments.py
-├── data/
-│   ├── training/
-│   ├── shortest-queue/
-│   ├── little-law/
-│   └── ml/
+│   ├── start.sh                  # Starts a single experiment
+│   ├── teardown.sh               # Resets the environment
+│   ├── requirements.txt          # Python dependencies
+│   ├── setup/                    # Infrastructure setup scripts
+│   ├── ml-training/              # Dataset preparation and model-training scripts
+│   └── evaluation/               # Calibration, evaluation and analysis scripts
+├── data/                         # Generated experimental data (gitignored)
+├── results/
+│   └── final-evaluation/         # Retained final evaluation results
 ├── docker-compose.yml
 └── pom.xml
 ```
@@ -344,7 +332,7 @@ Model development uses complete workload runs for train, validation and held-out
 
 Random Forest is retained as an offline baseline, while XGBoost is used for runtime routing.
 
-The training pipeline generates the XGBoost model and corresponding feature schema required by the producer for Java inference. These generated model artifacts are not treated as source files and can be recreated by running the training pipeline.
+The training pipeline generates the XGBoost model and corresponding feature schema required by the producer for Java inference. The final model and schema used by the submitted implementation are retained with the producer resources, while other generated training outputs can be recreated by running the training pipeline.
 
 The training scripts report the wall-clock duration of individual runs and of the complete final training pipeline.
 
@@ -500,7 +488,3 @@ The dissertation records the experimental host specification together with the r
 Each experimental run records its configuration and measurements using a run-specific identifier and output directory. The calibration, training and final-evaluation scripts provide reproducible entry points for the corresponding stages of the experimental workflow.
 
 Blockchain processing remains in the common consumer path for all routing strategies so that it contributes consistently to consumer load.
-
-## License
-
-This project is licensed under the MIT License. See `LICENSE` for details.
