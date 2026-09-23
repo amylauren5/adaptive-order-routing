@@ -1,0 +1,16 @@
+condition,feature,feature_label,training_p95,training_p99,training_maximum,evaluation_n,pct_above_training_p95,pct_above_training_p99,pct_above_training_maximum
+Steady,queue_length,Queue length,6.000000,29.000000,47.000000,960,2.395833,0.312500,0.000000
+Strong-short,queue_length,Queue length,6.000000,29.000000,47.000000,963,21.495327,11.838006,7.476636
+Moderate-long,queue_length,Queue length,6.000000,29.000000,47.000000,966,16.356108,10.144928,2.070393
+Steady,arrival_rate,Arrival rate,11.000000,15.600000,17.400000,960,14.583333,4.895833,3.437500
+Strong-short,arrival_rate,Arrival rate,11.000000,15.600000,17.400000,963,13.395639,7.995846,6.542056
+Moderate-long,arrival_rate,Arrival rate,11.000000,15.600000,17.400000,966,21.118012,8.385093,6.418219
+Steady,consumer_throughput,Consumer throughput,11.000000,14.800000,16.200000,960,12.812500,4.583333,3.437500
+Strong-short,consumer_throughput,Consumer throughput,11.000000,14.800000,16.200000,963,13.811007,6.022845,5.088266
+Moderate-long,consumer_throughput,Consumer throughput,11.000000,14.800000,16.200000,966,17.391304,4.037267,4.037267
+Steady,utilisation,Utilisation,1.128205,1.678851,2.863636,960,4.270833,0.833333,0.000000
+Strong-short,utilisation,Utilisation,1.128205,1.678851,2.863636,963,8.722741,3.946002,2.492212
+Moderate-long,utilisation,Utilisation,1.128205,1.678851,2.863636,966,9.316770,2.484472,0.000000
+Steady,backlog_growth,Backlog growth,0.000000,3.943775,45.897245,960,2.500000,0.833333,0.000000
+Strong-short,backlog_growth,Backlog growth,0.000000,3.943775,45.897245,963,3.322949,2.596054,0.623053
+Moderate-long,backlog_growth,Backlog growth,0.000000,3.943775,45.897245,966,2.898551,1.759834,0.414079

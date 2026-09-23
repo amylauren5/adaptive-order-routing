@@ -10,12 +10,12 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
-public class RabbitEventPublisher {
+public class EventPublisher {
 
     private final RabbitTemplate rabbitTemplate;
     private final ObjectMapper objectMapper;
 
-    public RabbitEventPublisher(
+    public EventPublisher(
             RabbitTemplate rabbitTemplate,
             ObjectMapper objectMapper
     ) {

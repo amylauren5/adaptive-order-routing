@@ -7,7 +7,7 @@ import ict.um.orders.core_api.queries.GetOrderRoutingByOrderIdQuery;
 import ict.um.orders.evaluation.RoutingMetricsLogger;
 import ict.um.orders.routing.OrderRoutingContext;
 import ict.um.orders.routing.RoutingDecision;
-import ict.um.orders.services.messaging.RabbitEventPublisher;
+import ict.um.orders.services.messaging.EventPublisher;
 import ict.um.orders.services.routing.RoutingService;
 import org.axonframework.eventhandling.EventHandler;
 import org.axonframework.queryhandling.QueryHandler;
@@ -28,13 +28,13 @@ public class OrderRoutingProjector {
             LoggerFactory.getLogger(OrderRoutingProjector.class);
 
     private final OrderRoutingViewRepository repository;
-    private final RabbitEventPublisher publisher;
+    private final EventPublisher publisher;
     private final RoutingService routingService;
     private final Optional<RoutingMetricsLogger> routingMetricsLogger;
 
     @Autowired
     public OrderRoutingProjector(OrderRoutingViewRepository repository,
-                                 RabbitEventPublisher publisher,
+                                 EventPublisher publisher,
                                  RoutingService routingService,
                                  Optional<RoutingMetricsLogger> routingMetricsLogger) {
         this.repository = repository;

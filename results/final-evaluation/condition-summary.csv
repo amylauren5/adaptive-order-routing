@@ -1,0 +1,88 @@
+condition,condition_label,strategy,strategy_label,metric,metric_label,n_runs,mean,std,median,q1,q3,min,max
+steady-medium,Steady workload,shortest-queue,Shortest queue,median_queueing_latency_ms,Median realised waiting time (ms),5,2.800000,0.836660,3.000000,2.000000,3.000000,2.000000,4.000000
+steady-medium,Steady workload,shortest-queue,Shortest queue,p95_queueing_latency_ms,P95 realised waiting time (ms),5,390.940000,203.738271,382.000000,199.450000,524.650000,190.650000,657.950000
+steady-medium,Steady workload,shortest-queue,Shortest queue,p99_queueing_latency_ms,P99 realised waiting time (ms),5,814.480000,290.661090,925.280000,783.540000,1017.800000,324.130000,1021.650000
+steady-medium,Steady workload,shortest-queue,Shortest queue,mean_backlog,Mean aggregate backlog,5,0.799337,0.654761,0.606061,0.468750,1.296875,0.000000,1.625000
+steady-medium,Steady workload,shortest-queue,Shortest queue,p95_backlog,P95 aggregate backlog,5,5.000000,3.316625,5.000000,4.000000,8.000000,0.000000,8.000000
+steady-medium,Steady workload,shortest-queue,Shortest queue,mean_queue_imbalance,Mean queue imbalance,5,0.279566,0.224803,0.240418,0.169615,0.397748,0.000000,0.590049
+steady-medium,Steady workload,shortest-queue,Shortest queue,p95_queue_imbalance,P95 queue imbalance,5,2.089547,1.448378,1.885618,1.699673,3.091206,0.000000,3.771236
+steady-medium,Steady workload,shortest-queue,Shortest queue,throughput_events_per_second,Throughput (events/s),5,4.000000,0.315017,3.983446,3.709667,4.227221,3.680965,4.398702
+steady-medium,Steady workload,shortest-queue,Shortest queue,median_routing_overhead_ms,Median routing overhead (ms),5,0.155825,0.018120,0.151028,0.144801,0.153885,0.142263,0.187147
+steady-medium,Steady workload,little-law,Little's Law,median_queueing_latency_ms,Median realised waiting time (ms),5,2.600000,0.547723,3.000000,2.000000,3.000000,2.000000,3.000000
+steady-medium,Steady workload,little-law,Little's Law,p95_queueing_latency_ms,P95 realised waiting time (ms),5,312.860000,200.344370,203.500000,198.750000,322.900000,182.200000,656.950000
+steady-medium,Steady workload,little-law,Little's Law,p99_queueing_latency_ms,P99 realised waiting time (ms),5,725.138000,331.751985,927.820000,367.550000,939.260000,361.100000,1029.960000
+steady-medium,Steady workload,little-law,Little's Law,mean_backlog,Mean aggregate backlog,5,0.709375,1.023026,0.312500,0.203125,0.375000,0.125000,2.531250
+steady-medium,Steady workload,little-law,Little's Law,p95_backlog,P95 aggregate backlog,5,4.940000,6.779971,2.000000,1.700000,3.000000,1.000000,17.000000
+steady-medium,Steady workload,little-law,Little's Law,mean_queue_imbalance,Mean queue imbalance,5,0.289602,0.444864,0.100617,0.095754,0.139948,0.029463,1.082228
+steady-medium,Steady workload,little-law,Little's Law,p95_queue_imbalance,P95 queue imbalance,5,2.034776,3.346354,0.471405,0.471405,0.816497,0.400694,8.013877
+steady-medium,Steady workload,little-law,Little's Law,throughput_events_per_second,Throughput (events/s),5,4.003573,0.319632,3.988592,3.707578,4.235021,3.679957,4.406718
+steady-medium,Steady workload,little-law,Little's Law,median_routing_overhead_ms,Median routing overhead (ms),5,0.154352,0.005967,0.152540,0.151874,0.156264,0.147586,0.163494
+steady-medium,Steady workload,ml,ML,median_queueing_latency_ms,Median realised waiting time (ms),5,27.100000,23.501064,28.500000,6.000000,36.000000,4.000000,61.000000
+steady-medium,Steady workload,ml,ML,p95_queueing_latency_ms,P95 realised waiting time (ms),5,1159.240000,1030.344261,737.750000,439.750000,1349.850000,396.850000,2872.000000
+steady-medium,Steady workload,ml,ML,p99_queueing_latency_ms,P99 realised waiting time (ms),5,2045.114000,1492.136037,1565.540000,1158.840000,2170.050000,780.780000,4550.360000
+steady-medium,Steady workload,ml,ML,mean_backlog,Mean aggregate backlog,5,2.059375,1.584355,1.531250,1.015625,3.015625,0.421875,4.312500
+steady-medium,Steady workload,ml,ML,p95_backlog,P95 aggregate backlog,5,9.000000,7.516648,7.000000,5.000000,8.000000,3.000000,22.000000
+steady-medium,Steady workload,ml,ML,mean_queue_imbalance,Mean queue imbalance,5,0.948854,0.729348,0.721838,0.478770,1.321829,0.198874,2.022957
+steady-medium,Steady workload,ml,ML,p95_queue_imbalance,P95 queue imbalance,5,3.987281,3.630777,2.494438,2.357023,3.299832,1.414214,10.370899
+steady-medium,Steady workload,ml,ML,throughput_events_per_second,Throughput (events/s),5,3.995936,0.312935,3.983600,3.705383,4.239214,3.674901,4.376582
+steady-medium,Steady workload,ml,ML,median_routing_overhead_ms,Median routing overhead (ms),5,6.332966,0.386922,6.328153,6.166054,6.404704,5.853430,6.912491
+strong-short-burst,Strong short burst,shortest-queue,Shortest queue,median_queueing_latency_ms,Median realised waiting time (ms),5,8.000000,6.284903,6.000000,3.000000,10.000000,3.000000,18.000000
+strong-short-burst,Strong short burst,shortest-queue,Shortest queue,p95_queueing_latency_ms,P95 realised waiting time (ms),5,4888.490000,1578.225595,5121.800000,4821.500000,5581.750000,2331.000000,6586.400000
+strong-short-burst,Strong short burst,shortest-queue,Shortest queue,p99_queueing_latency_ms,P99 realised waiting time (ms),5,7052.802000,1517.826558,6766.060000,6628.730000,7359.260000,5160.050000,9349.910000
+strong-short-burst,Strong short burst,shortest-queue,Shortest queue,mean_backlog,Mean aggregate backlog,5,20.063068,8.079556,22.984375,16.031250,23.359375,8.409091,29.531250
+strong-short-burst,Strong short burst,shortest-queue,Shortest queue,p95_backlog,P95 aggregate backlog,5,102.130000,28.490735,110.000000,101.150000,113.500000,55.000000,131.000000
+strong-short-burst,Strong short burst,shortest-queue,Shortest queue,mean_queue_imbalance,Mean queue imbalance,5,5.916367,2.631141,6.885543,4.380381,8.073557,2.081857,8.160497
+strong-short-burst,Strong short burst,shortest-queue,Shortest queue,p95_queue_imbalance,P95 queue imbalance,5,34.308959,14.764098,39.126575,26.809904,40.554490,13.199327,51.854497
+strong-short-burst,Strong short burst,shortest-queue,Shortest queue,throughput_events_per_second,Throughput (events/s),5,4.847193,0.444431,4.683615,4.673815,5.116123,4.307350,5.455062
+strong-short-burst,Strong short burst,shortest-queue,Shortest queue,recovery_time_seconds,Recovery time (s),5,21.888000,6.564461,22.375000,18.529000,27.600000,12.588000,28.348000
+strong-short-burst,Strong short burst,shortest-queue,Shortest queue,median_routing_overhead_ms,Median routing overhead (ms),5,0.146639,0.006272,0.145214,0.143900,0.149690,0.138893,0.155499
+strong-short-burst,Strong short burst,little-law,Little's Law,median_queueing_latency_ms,Median realised waiting time (ms),5,27.400000,52.333546,5.000000,3.000000,5.000000,3.000000,121.000000
+strong-short-burst,Strong short burst,little-law,Little's Law,p95_queueing_latency_ms,P95 realised waiting time (ms),5,5170.680000,2161.707558,5348.700000,3584.900000,6785.450000,2467.500000,7666.850000
+strong-short-burst,Strong short burst,little-law,Little's Law,p99_queueing_latency_ms,P99 realised waiting time (ms),5,6756.592000,2460.226675,7357.420000,5682.870000,7714.510000,3223.050000,9805.110000
+strong-short-burst,Strong short burst,little-law,Little's Law,mean_backlog,Mean aggregate backlog,5,19.104615,15.515853,17.359375,9.523077,19.031250,4.765625,44.843750
+strong-short-burst,Strong short burst,little-law,Little's Law,p95_backlog,P95 aggregate backlog,5,87.600000,32.996970,81.000000,79.000000,89.000000,49.000000,140.000000
+strong-short-burst,Strong short burst,little-law,Little's Law,mean_queue_imbalance,Mean queue imbalance,5,5.296566,4.006232,5.174149,2.875903,6.267136,0.784398,11.381246
+strong-short-burst,Strong short burst,little-law,Little's Law,p95_queue_imbalance,P95 queue imbalance,5,30.759004,19.686970,28.288199,19.096247,41.955002,6.944222,57.511352
+strong-short-burst,Strong short burst,little-law,Little's Law,throughput_events_per_second,Throughput (events/s),5,4.833855,0.449483,4.650463,4.643603,5.112508,4.308570,5.454129
+strong-short-burst,Strong short burst,little-law,Little's Law,recovery_time_seconds,Recovery time (s),5,17.662200,12.576861,18.435000,11.477000,24.360000,0.464000,33.575000
+strong-short-burst,Strong short burst,little-law,Little's Law,median_routing_overhead_ms,Median routing overhead (ms),5,0.155117,0.005806,0.155356,0.154013,0.158093,0.146235,0.161888
+strong-short-burst,Strong short burst,ml,ML,median_queueing_latency_ms,Median realised waiting time (ms),5,89.300000,70.063899,68.000000,41.000000,115.000000,24.000000,198.500000
+strong-short-burst,Strong short burst,ml,ML,p95_queueing_latency_ms,P95 realised waiting time (ms),5,7935.310000,4064.067757,8285.550000,5740.200000,10332.400000,2404.350000,12914.050000
+strong-short-burst,Strong short burst,ml,ML,p99_queueing_latency_ms,P99 realised waiting time (ms),5,11836.660000,5626.192374,14990.980000,8651.860000,15754.360000,3426.990000,16359.110000
+strong-short-burst,Strong short burst,ml,ML,mean_backlog,Mean aggregate backlog,5,29.553365,16.634906,37.109375,19.296875,37.281250,6.156250,47.923077
+strong-short-burst,Strong short burst,ml,ML,p95_backlog,P95 aggregate backlog,5,112.490000,43.896475,119.000000,78.000000,146.450000,58.000000,161.000000
+strong-short-burst,Strong short burst,ml,ML,mean_queue_imbalance,Mean queue imbalance,5,9.412491,4.939697,10.131716,7.439084,13.451364,1.978579,14.061712
+strong-short-burst,Strong short burst,ml,ML,p95_queue_imbalance,P95 queue imbalance,5,47.141806,23.602659,48.086523,33.980386,62.225397,15.520596,75.896128
+strong-short-burst,Strong short burst,ml,ML,throughput_events_per_second,Throughput (events/s),5,4.837265,0.459066,4.672818,4.651036,5.113573,4.281940,5.466956
+strong-short-burst,Strong short burst,ml,ML,recovery_time_seconds,Recovery time (s),5,23.313400,12.934724,26.432000,26.384000,30.578000,0.668000,32.505000
+strong-short-burst,Strong short burst,ml,ML,median_routing_overhead_ms,Median routing overhead (ms),5,6.330716,0.246635,6.238228,6.188188,6.330888,6.142467,6.753811
+moderate-long-burst,Moderate long burst,shortest-queue,Shortest queue,median_queueing_latency_ms,Median realised waiting time (ms),5,25.200000,36.382688,5.000000,4.000000,26.000000,3.000000,88.000000
+moderate-long-burst,Moderate long burst,shortest-queue,Shortest queue,p95_queueing_latency_ms,P95 realised waiting time (ms),5,4048.890000,3504.972849,3157.600000,2137.250000,3415.450000,1386.150000,10148.000000
+moderate-long-burst,Moderate long burst,shortest-queue,Shortest queue,p99_queueing_latency_ms,P99 realised waiting time (ms),5,6180.814000,4710.596189,5123.550000,2959.590000,7515.930000,1688.000000,13617.000000
+moderate-long-burst,Moderate long burst,shortest-queue,Shortest queue,mean_backlog,Mean aggregate backlog,5,16.184848,12.878093,15.375000,5.843750,17.703125,5.078125,36.924242
+moderate-long-burst,Moderate long burst,shortest-queue,Shortest queue,p95_backlog,P95 aggregate backlog,5,58.400000,29.770791,52.000000,34.000000,68.000000,33.000000,105.000000
+moderate-long-burst,Moderate long burst,shortest-queue,Shortest queue,mean_queue_imbalance,Mean queue imbalance,5,5.546922,3.717461,5.928631,2.717942,6.574347,1.509968,11.003720
+moderate-long-burst,Moderate long burst,shortest-queue,Shortest queue,p95_queue_imbalance,P95 queue imbalance,5,26.681496,15.031818,24.513035,16.027754,32.055507,11.313708,49.497475
+moderate-long-burst,Moderate long burst,shortest-queue,Shortest queue,throughput_events_per_second,Throughput (events/s),5,4.533668,0.379911,4.429663,4.371381,4.740398,4.065621,5.061276
+moderate-long-burst,Moderate long burst,shortest-queue,Shortest queue,recovery_time_seconds,Recovery time (s),5,29.231400,9.146500,29.788000,21.868000,35.562000,18.517000,40.422000
+moderate-long-burst,Moderate long burst,shortest-queue,Shortest queue,median_routing_overhead_ms,Median routing overhead (ms),5,0.159382,0.018891,0.153131,0.146737,0.162873,0.143658,0.190513
+moderate-long-burst,Moderate long burst,little-law,Little's Law,median_queueing_latency_ms,Median realised waiting time (ms),5,4.000000,2.236068,3.000000,3.000000,3.000000,3.000000,8.000000
+moderate-long-burst,Moderate long burst,little-law,Little's Law,p95_queueing_latency_ms,P95 realised waiting time (ms),5,1595.470000,1487.625176,961.600000,641.150000,1627.600000,594.750000,4152.250000
+moderate-long-burst,Moderate long burst,little-law,Little's Law,p99_queueing_latency_ms,P99 realised waiting time (ms),5,2627.706000,2652.260408,1300.250000,1202.250000,2374.420000,987.470000,7274.140000
+moderate-long-burst,Moderate long burst,little-law,Little's Law,mean_backlog,Mean aggregate backlog,5,6.088077,9.193836,1.815385,1.453125,3.531250,1.187500,22.453125
+moderate-long-burst,Moderate long burst,little-law,Little's Law,p95_backlog,P95 aggregate backlog,5,25.270000,29.421327,12.000000,9.000000,24.000000,5.000000,76.350000
+moderate-long-burst,Moderate long burst,little-law,Little's Law,mean_queue_imbalance,Mean queue imbalance,5,1.942190,2.634760,0.732691,0.594252,1.333191,0.434780,6.616038
+moderate-long-burst,Moderate long burst,little-law,Little's Law,p95_queue_imbalance,P95 queue imbalance,5,11.533052,13.730135,4.966555,4.242641,11.313708,1.857726,35.284628
+moderate-long-burst,Moderate long burst,little-law,Little's Law,throughput_events_per_second,Throughput (events/s),5,4.527122,0.384959,4.408620,4.364256,4.745179,4.057452,5.060101
+moderate-long-burst,Moderate long burst,little-law,Little's Law,recovery_time_seconds,Recovery time (s),5,15.300400,7.188043,16.563000,12.342000,20.577000,4.508000,22.512000
+moderate-long-burst,Moderate long burst,little-law,Little's Law,median_routing_overhead_ms,Median routing overhead (ms),5,0.153622,0.004574,0.153843,0.149552,0.155453,0.149075,0.160184
+moderate-long-burst,Moderate long burst,ml,ML,median_queueing_latency_ms,Median realised waiting time (ms),5,53.900000,31.476976,36.000000,32.000000,65.000000,32.000000,104.500000
+moderate-long-burst,Moderate long burst,ml,ML,p95_queueing_latency_ms,P95 realised waiting time (ms),5,2526.420000,1023.769794,2556.000000,1735.000000,3484.400000,1282.000000,3574.700000
+moderate-long-burst,Moderate long burst,ml,ML,p99_queueing_latency_ms,P99 realised waiting time (ms),5,4410.830000,2630.020227,3894.560000,2250.250000,5967.390000,1833.860000,8108.090000
+moderate-long-burst,Moderate long burst,ml,ML,mean_backlog,Mean aggregate backlog,5,18.236553,11.806764,20.151515,9.453125,24.609375,3.718750,33.250000
+moderate-long-burst,Moderate long burst,ml,ML,p95_backlog,P95 aggregate backlog,5,63.200000,33.877721,54.000000,42.000000,91.000000,24.000000,105.000000
+moderate-long-burst,Moderate long burst,ml,ML,mean_queue_imbalance,Mean queue imbalance,5,7.179164,4.248018,8.080552,4.347141,9.342020,1.648034,12.478073
+moderate-long-burst,Moderate long burst,ml,ML,p95_queue_imbalance,P95 queue imbalance,5,24.676632,9.999821,25.455844,18.384776,32.873495,11.313708,35.355339
+moderate-long-burst,Moderate long burst,ml,ML,throughput_events_per_second,Throughput (events/s),5,4.534883,0.399883,4.405165,4.365650,4.744024,4.057111,5.102467
+moderate-long-burst,Moderate long burst,ml,ML,recovery_time_seconds,Recovery time (s),5,18.685800,16.898798,27.509000,0.500000,29.415000,0.429000,35.576000
+moderate-long-burst,Moderate long burst,ml,ML,median_routing_overhead_ms,Median routing overhead (ms),5,6.393930,0.432429,6.235491,6.179693,6.326377,6.077614,7.150475

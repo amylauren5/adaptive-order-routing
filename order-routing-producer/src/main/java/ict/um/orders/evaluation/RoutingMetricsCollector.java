@@ -6,12 +6,15 @@ import ict.um.orders.ml.features.RoutingFeatures;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
+import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -48,7 +51,19 @@ public class RoutingMetricsCollector {
     ) {
         this.virtualHost = virtualHost;
 
+        HttpClient httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(3))
+                .build();
+
+        JdkClientHttpRequestFactory requestFactory =
+                new JdkClientHttpRequestFactory(httpClient);
+
+        requestFactory.setReadTimeout(
+                Duration.ofSeconds(3)
+        );
+
         this.client = RestClient.builder()
+                .requestFactory(requestFactory)
                 .baseUrl(host + "/api")
                 .defaultHeaders(headers ->
                         headers.setBasicAuth(user, pass))

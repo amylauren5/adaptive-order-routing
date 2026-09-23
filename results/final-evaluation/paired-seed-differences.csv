@@ -1,0 +1,291 @@
+condition,condition_label,metric,metric_label,first_strategy,second_strategy,random_seed,first_value,second_value,difference_first_minus_second
+steady-medium,Steady workload,median_queueing_latency_ms,Median realised waiting time (ms),ml,shortest-queue,1001,61.000000,3.000000,58.000000
+steady-medium,Steady workload,median_queueing_latency_ms,Median realised waiting time (ms),ml,shortest-queue,1002,6.000000,4.000000,2.000000
+steady-medium,Steady workload,median_queueing_latency_ms,Median realised waiting time (ms),ml,shortest-queue,1003,36.000000,2.000000,34.000000
+steady-medium,Steady workload,median_queueing_latency_ms,Median realised waiting time (ms),ml,shortest-queue,1004,28.500000,3.000000,25.500000
+steady-medium,Steady workload,median_queueing_latency_ms,Median realised waiting time (ms),ml,shortest-queue,1005,4.000000,2.000000,2.000000
+steady-medium,Steady workload,median_queueing_latency_ms,Median realised waiting time (ms),ml,little-law,1001,61.000000,3.000000,58.000000
+steady-medium,Steady workload,median_queueing_latency_ms,Median realised waiting time (ms),ml,little-law,1002,6.000000,2.000000,4.000000
+steady-medium,Steady workload,median_queueing_latency_ms,Median realised waiting time (ms),ml,little-law,1003,36.000000,3.000000,33.000000
+steady-medium,Steady workload,median_queueing_latency_ms,Median realised waiting time (ms),ml,little-law,1004,28.500000,3.000000,25.500000
+steady-medium,Steady workload,median_queueing_latency_ms,Median realised waiting time (ms),ml,little-law,1005,4.000000,2.000000,2.000000
+steady-medium,Steady workload,p95_queueing_latency_ms,P95 realised waiting time (ms),ml,shortest-queue,1001,1349.850000,524.650000,825.200000
+steady-medium,Steady workload,p95_queueing_latency_ms,P95 realised waiting time (ms),ml,shortest-queue,1002,396.850000,657.950000,-261.100000
+steady-medium,Steady workload,p95_queueing_latency_ms,P95 realised waiting time (ms),ml,shortest-queue,1003,2872.000000,199.450000,2672.550000
+steady-medium,Steady workload,p95_queueing_latency_ms,P95 realised waiting time (ms),ml,shortest-queue,1004,737.750000,382.000000,355.750000
+steady-medium,Steady workload,p95_queueing_latency_ms,P95 realised waiting time (ms),ml,shortest-queue,1005,439.750000,190.650000,249.100000
+steady-medium,Steady workload,p95_queueing_latency_ms,P95 realised waiting time (ms),ml,little-law,1001,1349.850000,656.950000,692.900000
+steady-medium,Steady workload,p95_queueing_latency_ms,P95 realised waiting time (ms),ml,little-law,1002,396.850000,203.500000,193.350000
+steady-medium,Steady workload,p95_queueing_latency_ms,P95 realised waiting time (ms),ml,little-law,1003,2872.000000,322.900000,2549.100000
+steady-medium,Steady workload,p95_queueing_latency_ms,P95 realised waiting time (ms),ml,little-law,1004,737.750000,198.750000,539.000000
+steady-medium,Steady workload,p95_queueing_latency_ms,P95 realised waiting time (ms),ml,little-law,1005,439.750000,182.200000,257.550000
+steady-medium,Steady workload,p99_queueing_latency_ms,P99 realised waiting time (ms),ml,shortest-queue,1001,1565.540000,783.540000,782.000000
+steady-medium,Steady workload,p99_queueing_latency_ms,P99 realised waiting time (ms),ml,shortest-queue,1002,1158.840000,1017.800000,141.040000
+steady-medium,Steady workload,p99_queueing_latency_ms,P99 realised waiting time (ms),ml,shortest-queue,1003,4550.360000,925.280000,3625.080000
+steady-medium,Steady workload,p99_queueing_latency_ms,P99 realised waiting time (ms),ml,shortest-queue,1004,2170.050000,1021.650000,1148.400000
+steady-medium,Steady workload,p99_queueing_latency_ms,P99 realised waiting time (ms),ml,shortest-queue,1005,780.780000,324.130000,456.650000
+steady-medium,Steady workload,p99_queueing_latency_ms,P99 realised waiting time (ms),ml,little-law,1001,1565.540000,939.260000,626.280000
+steady-medium,Steady workload,p99_queueing_latency_ms,P99 realised waiting time (ms),ml,little-law,1002,1158.840000,927.820000,231.020000
+steady-medium,Steady workload,p99_queueing_latency_ms,P99 realised waiting time (ms),ml,little-law,1003,4550.360000,1029.960000,3520.400000
+steady-medium,Steady workload,p99_queueing_latency_ms,P99 realised waiting time (ms),ml,little-law,1004,2170.050000,367.550000,1802.500000
+steady-medium,Steady workload,p99_queueing_latency_ms,P99 realised waiting time (ms),ml,little-law,1005,780.780000,361.100000,419.680000
+steady-medium,Steady workload,mean_backlog,Mean aggregate backlog,ml,shortest-queue,1001,4.312500,1.296875,3.015625
+steady-medium,Steady workload,mean_backlog,Mean aggregate backlog,ml,shortest-queue,1002,1.531250,1.625000,-0.093750
+steady-medium,Steady workload,mean_backlog,Mean aggregate backlog,ml,shortest-queue,1003,3.015625,0.000000,3.015625
+steady-medium,Steady workload,mean_backlog,Mean aggregate backlog,ml,shortest-queue,1004,1.015625,0.606061,0.409564
+steady-medium,Steady workload,mean_backlog,Mean aggregate backlog,ml,shortest-queue,1005,0.421875,0.468750,-0.046875
+steady-medium,Steady workload,mean_backlog,Mean aggregate backlog,ml,little-law,1001,4.312500,2.531250,1.781250
+steady-medium,Steady workload,mean_backlog,Mean aggregate backlog,ml,little-law,1002,1.531250,0.125000,1.406250
+steady-medium,Steady workload,mean_backlog,Mean aggregate backlog,ml,little-law,1003,3.015625,0.375000,2.640625
+steady-medium,Steady workload,mean_backlog,Mean aggregate backlog,ml,little-law,1004,1.015625,0.203125,0.812500
+steady-medium,Steady workload,mean_backlog,Mean aggregate backlog,ml,little-law,1005,0.421875,0.312500,0.109375
+steady-medium,Steady workload,p95_backlog,P95 aggregate backlog,ml,shortest-queue,1001,22.000000,8.000000,14.000000
+steady-medium,Steady workload,p95_backlog,P95 aggregate backlog,ml,shortest-queue,1002,7.000000,8.000000,-1.000000
+steady-medium,Steady workload,p95_backlog,P95 aggregate backlog,ml,shortest-queue,1003,8.000000,0.000000,8.000000
+steady-medium,Steady workload,p95_backlog,P95 aggregate backlog,ml,shortest-queue,1004,5.000000,4.000000,1.000000
+steady-medium,Steady workload,p95_backlog,P95 aggregate backlog,ml,shortest-queue,1005,3.000000,5.000000,-2.000000
+steady-medium,Steady workload,p95_backlog,P95 aggregate backlog,ml,little-law,1001,22.000000,17.000000,5.000000
+steady-medium,Steady workload,p95_backlog,P95 aggregate backlog,ml,little-law,1002,7.000000,1.700000,5.300000
+steady-medium,Steady workload,p95_backlog,P95 aggregate backlog,ml,little-law,1003,8.000000,2.000000,6.000000
+steady-medium,Steady workload,p95_backlog,P95 aggregate backlog,ml,little-law,1004,5.000000,1.000000,4.000000
+steady-medium,Steady workload,p95_backlog,P95 aggregate backlog,ml,little-law,1005,3.000000,3.000000,0.000000
+steady-medium,Steady workload,mean_queue_imbalance,Mean queue imbalance,ml,shortest-queue,1001,2.022957,0.397748,1.625209
+steady-medium,Steady workload,mean_queue_imbalance,Mean queue imbalance,ml,shortest-queue,1002,0.721838,0.590049,0.131789
+steady-medium,Steady workload,mean_queue_imbalance,Mean queue imbalance,ml,shortest-queue,1003,1.321829,0.000000,1.321829
+steady-medium,Steady workload,mean_queue_imbalance,Mean queue imbalance,ml,shortest-queue,1004,0.478770,0.240418,0.238352
+steady-medium,Steady workload,mean_queue_imbalance,Mean queue imbalance,ml,shortest-queue,1005,0.198874,0.169615,0.029259
+steady-medium,Steady workload,mean_queue_imbalance,Mean queue imbalance,ml,little-law,1001,2.022957,1.082228,0.940729
+steady-medium,Steady workload,mean_queue_imbalance,Mean queue imbalance,ml,little-law,1002,0.721838,0.029463,0.692375
+steady-medium,Steady workload,mean_queue_imbalance,Mean queue imbalance,ml,little-law,1003,1.321829,0.139948,1.181881
+steady-medium,Steady workload,mean_queue_imbalance,Mean queue imbalance,ml,little-law,1004,0.478770,0.095754,0.383016
+steady-medium,Steady workload,mean_queue_imbalance,Mean queue imbalance,ml,little-law,1005,0.198874,0.100617,0.098257
+steady-medium,Steady workload,p95_queue_imbalance,P95 queue imbalance,ml,shortest-queue,1001,10.370899,3.771236,6.599663
+steady-medium,Steady workload,p95_queue_imbalance,P95 queue imbalance,ml,shortest-queue,1002,3.299832,3.091206,0.208626
+steady-medium,Steady workload,p95_queue_imbalance,P95 queue imbalance,ml,shortest-queue,1003,2.494438,0.000000,2.494438
+steady-medium,Steady workload,p95_queue_imbalance,P95 queue imbalance,ml,shortest-queue,1004,2.357023,1.885618,0.471405
+steady-medium,Steady workload,p95_queue_imbalance,P95 queue imbalance,ml,shortest-queue,1005,1.414214,1.699673,-0.285459
+steady-medium,Steady workload,p95_queue_imbalance,P95 queue imbalance,ml,little-law,1001,10.370899,8.013877,2.357022
+steady-medium,Steady workload,p95_queue_imbalance,P95 queue imbalance,ml,little-law,1002,3.299832,0.400694,2.899138
+steady-medium,Steady workload,p95_queue_imbalance,P95 queue imbalance,ml,little-law,1003,2.494438,0.471405,2.023033
+steady-medium,Steady workload,p95_queue_imbalance,P95 queue imbalance,ml,little-law,1004,2.357023,0.471405,1.885618
+steady-medium,Steady workload,p95_queue_imbalance,P95 queue imbalance,ml,little-law,1005,1.414214,0.816497,0.597717
+steady-medium,Steady workload,throughput_events_per_second,Throughput (events/s),ml,shortest-queue,1001,4.376582,4.398702,-0.022120
+steady-medium,Steady workload,throughput_events_per_second,Throughput (events/s),ml,shortest-queue,1002,3.674901,3.680965,-0.006064
+steady-medium,Steady workload,throughput_events_per_second,Throughput (events/s),ml,shortest-queue,1003,3.705383,3.709667,-0.004284
+steady-medium,Steady workload,throughput_events_per_second,Throughput (events/s),ml,shortest-queue,1004,4.239214,4.227221,0.011993
+steady-medium,Steady workload,throughput_events_per_second,Throughput (events/s),ml,shortest-queue,1005,3.983600,3.983446,0.000154
+steady-medium,Steady workload,throughput_events_per_second,Throughput (events/s),ml,little-law,1001,4.376582,4.406718,-0.030136
+steady-medium,Steady workload,throughput_events_per_second,Throughput (events/s),ml,little-law,1002,3.674901,3.679957,-0.005056
+steady-medium,Steady workload,throughput_events_per_second,Throughput (events/s),ml,little-law,1003,3.705383,3.707578,-0.002195
+steady-medium,Steady workload,throughput_events_per_second,Throughput (events/s),ml,little-law,1004,4.239214,4.235021,0.004193
+steady-medium,Steady workload,throughput_events_per_second,Throughput (events/s),ml,little-law,1005,3.983600,3.988592,-0.004992
+steady-medium,Steady workload,median_routing_overhead_ms,Median routing overhead (ms),ml,shortest-queue,1001,6.912491,0.153885,6.758607
+steady-medium,Steady workload,median_routing_overhead_ms,Median routing overhead (ms),ml,shortest-queue,1002,6.166054,0.187147,5.978906
+steady-medium,Steady workload,median_routing_overhead_ms,Median routing overhead (ms),ml,shortest-queue,1003,6.404704,0.144801,6.259902
+steady-medium,Steady workload,median_routing_overhead_ms,Median routing overhead (ms),ml,shortest-queue,1004,6.328153,0.142263,6.185890
+steady-medium,Steady workload,median_routing_overhead_ms,Median routing overhead (ms),ml,shortest-queue,1005,5.853430,0.151028,5.702403
+steady-medium,Steady workload,median_routing_overhead_ms,Median routing overhead (ms),ml,little-law,1001,6.912491,0.147586,6.764905
+steady-medium,Steady workload,median_routing_overhead_ms,Median routing overhead (ms),ml,little-law,1002,6.166054,0.156264,6.009790
+steady-medium,Steady workload,median_routing_overhead_ms,Median routing overhead (ms),ml,little-law,1003,6.404704,0.163494,6.241210
+steady-medium,Steady workload,median_routing_overhead_ms,Median routing overhead (ms),ml,little-law,1004,6.328153,0.151874,6.176279
+steady-medium,Steady workload,median_routing_overhead_ms,Median routing overhead (ms),ml,little-law,1005,5.853430,0.152540,5.700890
+strong-short-burst,Strong short burst,median_queueing_latency_ms,Median realised waiting time (ms),ml,shortest-queue,1001,198.500000,18.000000,180.500000
+strong-short-burst,Strong short burst,median_queueing_latency_ms,Median realised waiting time (ms),ml,shortest-queue,1002,41.000000,3.000000,38.000000
+strong-short-burst,Strong short burst,median_queueing_latency_ms,Median realised waiting time (ms),ml,shortest-queue,1003,68.000000,6.000000,62.000000
+strong-short-burst,Strong short burst,median_queueing_latency_ms,Median realised waiting time (ms),ml,shortest-queue,1004,115.000000,10.000000,105.000000
+strong-short-burst,Strong short burst,median_queueing_latency_ms,Median realised waiting time (ms),ml,shortest-queue,1005,24.000000,3.000000,21.000000
+strong-short-burst,Strong short burst,median_queueing_latency_ms,Median realised waiting time (ms),ml,little-law,1001,198.500000,121.000000,77.500000
+strong-short-burst,Strong short burst,median_queueing_latency_ms,Median realised waiting time (ms),ml,little-law,1002,41.000000,3.000000,38.000000
+strong-short-burst,Strong short burst,median_queueing_latency_ms,Median realised waiting time (ms),ml,little-law,1003,68.000000,5.000000,63.000000
+strong-short-burst,Strong short burst,median_queueing_latency_ms,Median realised waiting time (ms),ml,little-law,1004,115.000000,5.000000,110.000000
+strong-short-burst,Strong short burst,median_queueing_latency_ms,Median realised waiting time (ms),ml,little-law,1005,24.000000,3.000000,21.000000
+strong-short-burst,Strong short burst,p95_queueing_latency_ms,P95 realised waiting time (ms),ml,shortest-queue,1001,10332.400000,5581.750000,4750.650000
+strong-short-burst,Strong short burst,p95_queueing_latency_ms,P95 realised waiting time (ms),ml,shortest-queue,1002,2404.350000,2331.000000,73.350000
+strong-short-burst,Strong short burst,p95_queueing_latency_ms,P95 realised waiting time (ms),ml,shortest-queue,1003,12914.050000,6586.400000,6327.650000
+strong-short-burst,Strong short burst,p95_queueing_latency_ms,P95 realised waiting time (ms),ml,shortest-queue,1004,8285.550000,5121.800000,3163.750000
+strong-short-burst,Strong short burst,p95_queueing_latency_ms,P95 realised waiting time (ms),ml,shortest-queue,1005,5740.200000,4821.500000,918.700000
+strong-short-burst,Strong short burst,p95_queueing_latency_ms,P95 realised waiting time (ms),ml,little-law,1001,10332.400000,7666.850000,2665.550000
+strong-short-burst,Strong short burst,p95_queueing_latency_ms,P95 realised waiting time (ms),ml,little-law,1002,2404.350000,2467.500000,-63.150000
+strong-short-burst,Strong short burst,p95_queueing_latency_ms,P95 realised waiting time (ms),ml,little-law,1003,12914.050000,6785.450000,6128.600000
+strong-short-burst,Strong short burst,p95_queueing_latency_ms,P95 realised waiting time (ms),ml,little-law,1004,8285.550000,5348.700000,2936.850000
+strong-short-burst,Strong short burst,p95_queueing_latency_ms,P95 realised waiting time (ms),ml,little-law,1005,5740.200000,3584.900000,2155.300000
+strong-short-burst,Strong short burst,p99_queueing_latency_ms,P99 realised waiting time (ms),ml,shortest-queue,1001,16359.110000,6766.060000,9593.050000
+strong-short-burst,Strong short burst,p99_queueing_latency_ms,P99 realised waiting time (ms),ml,shortest-queue,1002,3426.990000,5160.050000,-1733.060000
+strong-short-burst,Strong short burst,p99_queueing_latency_ms,P99 realised waiting time (ms),ml,shortest-queue,1003,15754.360000,9349.910000,6404.450000
+strong-short-burst,Strong short burst,p99_queueing_latency_ms,P99 realised waiting time (ms),ml,shortest-queue,1004,14990.980000,6628.730000,8362.250000
+strong-short-burst,Strong short burst,p99_queueing_latency_ms,P99 realised waiting time (ms),ml,shortest-queue,1005,8651.860000,7359.260000,1292.600000
+strong-short-burst,Strong short burst,p99_queueing_latency_ms,P99 realised waiting time (ms),ml,little-law,1001,16359.110000,9805.110000,6554.000000
+strong-short-burst,Strong short burst,p99_queueing_latency_ms,P99 realised waiting time (ms),ml,little-law,1002,3426.990000,3223.050000,203.940000
+strong-short-burst,Strong short burst,p99_queueing_latency_ms,P99 realised waiting time (ms),ml,little-law,1003,15754.360000,7357.420000,8396.940000
+strong-short-burst,Strong short burst,p99_queueing_latency_ms,P99 realised waiting time (ms),ml,little-law,1004,14990.980000,7714.510000,7276.470000
+strong-short-burst,Strong short burst,p99_queueing_latency_ms,P99 realised waiting time (ms),ml,little-law,1005,8651.860000,5682.870000,2968.990000
+strong-short-burst,Strong short burst,mean_backlog,Mean aggregate backlog,ml,shortest-queue,1001,47.923077,29.531250,18.391827
+strong-short-burst,Strong short burst,mean_backlog,Mean aggregate backlog,ml,shortest-queue,1002,6.156250,8.409091,-2.252841
+strong-short-burst,Strong short burst,mean_backlog,Mean aggregate backlog,ml,shortest-queue,1003,37.109375,23.359375,13.750000
+strong-short-burst,Strong short burst,mean_backlog,Mean aggregate backlog,ml,shortest-queue,1004,37.281250,22.984375,14.296875
+strong-short-burst,Strong short burst,mean_backlog,Mean aggregate backlog,ml,shortest-queue,1005,19.296875,16.031250,3.265625
+strong-short-burst,Strong short burst,mean_backlog,Mean aggregate backlog,ml,little-law,1001,47.923077,44.843750,3.079327
+strong-short-burst,Strong short burst,mean_backlog,Mean aggregate backlog,ml,little-law,1002,6.156250,4.765625,1.390625
+strong-short-burst,Strong short burst,mean_backlog,Mean aggregate backlog,ml,little-law,1003,37.109375,17.359375,19.750000
+strong-short-burst,Strong short burst,mean_backlog,Mean aggregate backlog,ml,little-law,1004,37.281250,19.031250,18.250000
+strong-short-burst,Strong short burst,mean_backlog,Mean aggregate backlog,ml,little-law,1005,19.296875,9.523077,9.773798
+strong-short-burst,Strong short burst,p95_backlog,P95 aggregate backlog,ml,shortest-queue,1001,161.000000,131.000000,30.000000
+strong-short-burst,Strong short burst,p95_backlog,P95 aggregate backlog,ml,shortest-queue,1002,58.000000,55.000000,3.000000
+strong-short-burst,Strong short burst,p95_backlog,P95 aggregate backlog,ml,shortest-queue,1003,146.450000,110.000000,36.450000
+strong-short-burst,Strong short burst,p95_backlog,P95 aggregate backlog,ml,shortest-queue,1004,119.000000,101.150000,17.850000
+strong-short-burst,Strong short burst,p95_backlog,P95 aggregate backlog,ml,shortest-queue,1005,78.000000,113.500000,-35.500000
+strong-short-burst,Strong short burst,p95_backlog,P95 aggregate backlog,ml,little-law,1001,161.000000,140.000000,21.000000
+strong-short-burst,Strong short burst,p95_backlog,P95 aggregate backlog,ml,little-law,1002,58.000000,49.000000,9.000000
+strong-short-burst,Strong short burst,p95_backlog,P95 aggregate backlog,ml,little-law,1003,146.450000,79.000000,67.450000
+strong-short-burst,Strong short burst,p95_backlog,P95 aggregate backlog,ml,little-law,1004,119.000000,89.000000,30.000000
+strong-short-burst,Strong short burst,p95_backlog,P95 aggregate backlog,ml,little-law,1005,78.000000,81.000000,-3.000000
+strong-short-burst,Strong short burst,mean_queue_imbalance,Mean queue imbalance,ml,shortest-queue,1001,14.061712,8.160497,5.901215
+strong-short-burst,Strong short burst,mean_queue_imbalance,Mean queue imbalance,ml,shortest-queue,1002,1.978579,2.081857,-0.103278
+strong-short-burst,Strong short burst,mean_queue_imbalance,Mean queue imbalance,ml,shortest-queue,1003,13.451364,8.073557,5.377807
+strong-short-burst,Strong short burst,mean_queue_imbalance,Mean queue imbalance,ml,shortest-queue,1004,10.131716,6.885543,3.246173
+strong-short-burst,Strong short burst,mean_queue_imbalance,Mean queue imbalance,ml,shortest-queue,1005,7.439084,4.380381,3.058703
+strong-short-burst,Strong short burst,mean_queue_imbalance,Mean queue imbalance,ml,little-law,1001,14.061712,11.381246,2.680466
+strong-short-burst,Strong short burst,mean_queue_imbalance,Mean queue imbalance,ml,little-law,1002,1.978579,0.784398,1.194181
+strong-short-burst,Strong short burst,mean_queue_imbalance,Mean queue imbalance,ml,little-law,1003,13.451364,5.174149,8.277215
+strong-short-burst,Strong short burst,mean_queue_imbalance,Mean queue imbalance,ml,little-law,1004,10.131716,6.267136,3.864580
+strong-short-burst,Strong short burst,mean_queue_imbalance,Mean queue imbalance,ml,little-law,1005,7.439084,2.875903,4.563181
+strong-short-burst,Strong short burst,p95_queue_imbalance,P95 queue imbalance,ml,shortest-queue,1001,75.896128,40.554490,35.341638
+strong-short-burst,Strong short burst,p95_queue_imbalance,P95 queue imbalance,ml,shortest-queue,1002,15.520596,13.199327,2.321269
+strong-short-burst,Strong short burst,p95_queue_imbalance,P95 queue imbalance,ml,shortest-queue,1003,62.225397,51.854497,10.370900
+strong-short-burst,Strong short burst,p95_queue_imbalance,P95 queue imbalance,ml,shortest-queue,1004,48.086523,39.126575,8.959948
+strong-short-burst,Strong short burst,p95_queue_imbalance,P95 queue imbalance,ml,shortest-queue,1005,33.980386,26.809904,7.170482
+strong-short-burst,Strong short burst,p95_queue_imbalance,P95 queue imbalance,ml,little-law,1001,75.896128,57.511352,18.384776
+strong-short-burst,Strong short burst,p95_queue_imbalance,P95 queue imbalance,ml,little-law,1002,15.520596,6.944222,8.576374
+strong-short-burst,Strong short burst,p95_queue_imbalance,P95 queue imbalance,ml,little-law,1003,62.225397,28.288199,33.937198
+strong-short-burst,Strong short burst,p95_queue_imbalance,P95 queue imbalance,ml,little-law,1004,48.086523,41.955002,6.131521
+strong-short-burst,Strong short burst,p95_queue_imbalance,P95 queue imbalance,ml,little-law,1005,33.980386,19.096247,14.884139
+strong-short-burst,Strong short burst,throughput_events_per_second,Throughput (events/s),ml,shortest-queue,1001,5.466956,5.455062,0.011894
+strong-short-burst,Strong short burst,throughput_events_per_second,Throughput (events/s),ml,shortest-queue,1002,4.651036,4.683615,-0.032579
+strong-short-burst,Strong short burst,throughput_events_per_second,Throughput (events/s),ml,shortest-queue,1003,4.672818,4.673815,-0.000997
+strong-short-burst,Strong short burst,throughput_events_per_second,Throughput (events/s),ml,shortest-queue,1004,5.113573,5.116123,-0.002550
+strong-short-burst,Strong short burst,throughput_events_per_second,Throughput (events/s),ml,shortest-queue,1005,4.281940,4.307350,-0.025410
+strong-short-burst,Strong short burst,throughput_events_per_second,Throughput (events/s),ml,little-law,1001,5.466956,5.454129,0.012827
+strong-short-burst,Strong short burst,throughput_events_per_second,Throughput (events/s),ml,little-law,1002,4.651036,4.650463,0.000573
+strong-short-burst,Strong short burst,throughput_events_per_second,Throughput (events/s),ml,little-law,1003,4.672818,4.643603,0.029215
+strong-short-burst,Strong short burst,throughput_events_per_second,Throughput (events/s),ml,little-law,1004,5.113573,5.112508,0.001065
+strong-short-burst,Strong short burst,throughput_events_per_second,Throughput (events/s),ml,little-law,1005,4.281940,4.308570,-0.026630
+strong-short-burst,Strong short burst,recovery_time_seconds,Recovery time (s),ml,shortest-queue,1001,30.578000,27.600000,2.978000
+strong-short-burst,Strong short burst,recovery_time_seconds,Recovery time (s),ml,shortest-queue,1002,0.668000,12.588000,-11.920000
+strong-short-burst,Strong short burst,recovery_time_seconds,Recovery time (s),ml,shortest-queue,1003,26.432000,22.375000,4.057000
+strong-short-burst,Strong short burst,recovery_time_seconds,Recovery time (s),ml,shortest-queue,1004,26.384000,28.348000,-1.964000
+strong-short-burst,Strong short burst,recovery_time_seconds,Recovery time (s),ml,shortest-queue,1005,32.505000,18.529000,13.976000
+strong-short-burst,Strong short burst,recovery_time_seconds,Recovery time (s),ml,little-law,1001,30.578000,33.575000,-2.997000
+strong-short-burst,Strong short burst,recovery_time_seconds,Recovery time (s),ml,little-law,1002,0.668000,0.464000,0.204000
+strong-short-burst,Strong short burst,recovery_time_seconds,Recovery time (s),ml,little-law,1003,26.432000,24.360000,2.072000
+strong-short-burst,Strong short burst,recovery_time_seconds,Recovery time (s),ml,little-law,1004,26.384000,18.435000,7.949000
+strong-short-burst,Strong short burst,recovery_time_seconds,Recovery time (s),ml,little-law,1005,32.505000,11.477000,21.028000
+strong-short-burst,Strong short burst,median_routing_overhead_ms,Median routing overhead (ms),ml,shortest-queue,1001,6.188188,0.138893,6.049295
+strong-short-burst,Strong short burst,median_routing_overhead_ms,Median routing overhead (ms),ml,shortest-queue,1002,6.142467,0.143900,5.998566
+strong-short-burst,Strong short burst,median_routing_overhead_ms,Median routing overhead (ms),ml,shortest-queue,1003,6.753811,0.149690,6.604120
+strong-short-burst,Strong short burst,median_routing_overhead_ms,Median routing overhead (ms),ml,shortest-queue,1004,6.330888,0.145214,6.185674
+strong-short-burst,Strong short burst,median_routing_overhead_ms,Median routing overhead (ms),ml,shortest-queue,1005,6.238228,0.155499,6.082730
+strong-short-burst,Strong short burst,median_routing_overhead_ms,Median routing overhead (ms),ml,little-law,1001,6.188188,0.155356,6.032832
+strong-short-burst,Strong short burst,median_routing_overhead_ms,Median routing overhead (ms),ml,little-law,1002,6.142467,0.146235,5.996231
+strong-short-burst,Strong short burst,median_routing_overhead_ms,Median routing overhead (ms),ml,little-law,1003,6.753811,0.161888,6.591923
+strong-short-burst,Strong short burst,median_routing_overhead_ms,Median routing overhead (ms),ml,little-law,1004,6.330888,0.158093,6.172795
+strong-short-burst,Strong short burst,median_routing_overhead_ms,Median routing overhead (ms),ml,little-law,1005,6.238228,0.154013,6.084215
+moderate-long-burst,Moderate long burst,median_queueing_latency_ms,Median realised waiting time (ms),ml,shortest-queue,1001,104.500000,26.000000,78.500000
+moderate-long-burst,Moderate long burst,median_queueing_latency_ms,Median realised waiting time (ms),ml,shortest-queue,1002,36.000000,88.000000,-52.000000
+moderate-long-burst,Moderate long burst,median_queueing_latency_ms,Median realised waiting time (ms),ml,shortest-queue,1003,32.000000,5.000000,27.000000
+moderate-long-burst,Moderate long burst,median_queueing_latency_ms,Median realised waiting time (ms),ml,shortest-queue,1004,65.000000,3.000000,62.000000
+moderate-long-burst,Moderate long burst,median_queueing_latency_ms,Median realised waiting time (ms),ml,shortest-queue,1005,32.000000,4.000000,28.000000
+moderate-long-burst,Moderate long burst,median_queueing_latency_ms,Median realised waiting time (ms),ml,little-law,1001,104.500000,8.000000,96.500000
+moderate-long-burst,Moderate long burst,median_queueing_latency_ms,Median realised waiting time (ms),ml,little-law,1002,36.000000,3.000000,33.000000
+moderate-long-burst,Moderate long burst,median_queueing_latency_ms,Median realised waiting time (ms),ml,little-law,1003,32.000000,3.000000,29.000000
+moderate-long-burst,Moderate long burst,median_queueing_latency_ms,Median realised waiting time (ms),ml,little-law,1004,65.000000,3.000000,62.000000
+moderate-long-burst,Moderate long burst,median_queueing_latency_ms,Median realised waiting time (ms),ml,little-law,1005,32.000000,3.000000,29.000000
+moderate-long-burst,Moderate long burst,p95_queueing_latency_ms,P95 realised waiting time (ms),ml,shortest-queue,1001,3484.400000,3157.600000,326.800000
+moderate-long-burst,Moderate long burst,p95_queueing_latency_ms,P95 realised waiting time (ms),ml,shortest-queue,1002,1735.000000,10148.000000,-8413.000000
+moderate-long-burst,Moderate long burst,p95_queueing_latency_ms,P95 realised waiting time (ms),ml,shortest-queue,1003,2556.000000,3415.450000,-859.450000
+moderate-long-burst,Moderate long burst,p95_queueing_latency_ms,P95 realised waiting time (ms),ml,shortest-queue,1004,3574.700000,2137.250000,1437.450000
+moderate-long-burst,Moderate long burst,p95_queueing_latency_ms,P95 realised waiting time (ms),ml,shortest-queue,1005,1282.000000,1386.150000,-104.150000
+moderate-long-burst,Moderate long burst,p95_queueing_latency_ms,P95 realised waiting time (ms),ml,little-law,1001,3484.400000,4152.250000,-667.850000
+moderate-long-burst,Moderate long burst,p95_queueing_latency_ms,P95 realised waiting time (ms),ml,little-law,1002,1735.000000,594.750000,1140.250000
+moderate-long-burst,Moderate long burst,p95_queueing_latency_ms,P95 realised waiting time (ms),ml,little-law,1003,2556.000000,961.600000,1594.400000
+moderate-long-burst,Moderate long burst,p95_queueing_latency_ms,P95 realised waiting time (ms),ml,little-law,1004,3574.700000,1627.600000,1947.100000
+moderate-long-burst,Moderate long burst,p95_queueing_latency_ms,P95 realised waiting time (ms),ml,little-law,1005,1282.000000,641.150000,640.850000
+moderate-long-burst,Moderate long burst,p99_queueing_latency_ms,P99 realised waiting time (ms),ml,shortest-queue,1001,8108.090000,5123.550000,2984.540000
+moderate-long-burst,Moderate long burst,p99_queueing_latency_ms,P99 realised waiting time (ms),ml,shortest-queue,1002,2250.250000,13617.000000,-11366.750000
+moderate-long-burst,Moderate long burst,p99_queueing_latency_ms,P99 realised waiting time (ms),ml,shortest-queue,1003,3894.560000,7515.930000,-3621.370000
+moderate-long-burst,Moderate long burst,p99_queueing_latency_ms,P99 realised waiting time (ms),ml,shortest-queue,1004,5967.390000,2959.590000,3007.800000
+moderate-long-burst,Moderate long burst,p99_queueing_latency_ms,P99 realised waiting time (ms),ml,shortest-queue,1005,1833.860000,1688.000000,145.860000
+moderate-long-burst,Moderate long burst,p99_queueing_latency_ms,P99 realised waiting time (ms),ml,little-law,1001,8108.090000,7274.140000,833.950000
+moderate-long-burst,Moderate long burst,p99_queueing_latency_ms,P99 realised waiting time (ms),ml,little-law,1002,2250.250000,1202.250000,1048.000000
+moderate-long-burst,Moderate long burst,p99_queueing_latency_ms,P99 realised waiting time (ms),ml,little-law,1003,3894.560000,1300.250000,2594.310000
+moderate-long-burst,Moderate long burst,p99_queueing_latency_ms,P99 realised waiting time (ms),ml,little-law,1004,5967.390000,2374.420000,3592.970000
+moderate-long-burst,Moderate long burst,p99_queueing_latency_ms,P99 realised waiting time (ms),ml,little-law,1005,1833.860000,987.470000,846.390000
+moderate-long-burst,Moderate long burst,mean_backlog,Mean aggregate backlog,ml,shortest-queue,1001,33.250000,17.703125,15.546875
+moderate-long-burst,Moderate long burst,mean_backlog,Mean aggregate backlog,ml,shortest-queue,1002,3.718750,36.924242,-33.205492
+moderate-long-burst,Moderate long burst,mean_backlog,Mean aggregate backlog,ml,shortest-queue,1003,9.453125,15.375000,-5.921875
+moderate-long-burst,Moderate long burst,mean_backlog,Mean aggregate backlog,ml,shortest-queue,1004,24.609375,5.843750,18.765625
+moderate-long-burst,Moderate long burst,mean_backlog,Mean aggregate backlog,ml,shortest-queue,1005,20.151515,5.078125,15.073390
+moderate-long-burst,Moderate long burst,mean_backlog,Mean aggregate backlog,ml,little-law,1001,33.250000,22.453125,10.796875
+moderate-long-burst,Moderate long burst,mean_backlog,Mean aggregate backlog,ml,little-law,1002,3.718750,1.187500,2.531250
+moderate-long-burst,Moderate long burst,mean_backlog,Mean aggregate backlog,ml,little-law,1003,9.453125,1.815385,7.637740
+moderate-long-burst,Moderate long burst,mean_backlog,Mean aggregate backlog,ml,little-law,1004,24.609375,3.531250,21.078125
+moderate-long-burst,Moderate long burst,mean_backlog,Mean aggregate backlog,ml,little-law,1005,20.151515,1.453125,18.698390
+moderate-long-burst,Moderate long burst,p95_backlog,P95 aggregate backlog,ml,shortest-queue,1001,91.000000,52.000000,39.000000
+moderate-long-burst,Moderate long burst,p95_backlog,P95 aggregate backlog,ml,shortest-queue,1002,24.000000,105.000000,-81.000000
+moderate-long-burst,Moderate long burst,p95_backlog,P95 aggregate backlog,ml,shortest-queue,1003,54.000000,68.000000,-14.000000
+moderate-long-burst,Moderate long burst,p95_backlog,P95 aggregate backlog,ml,shortest-queue,1004,105.000000,34.000000,71.000000
+moderate-long-burst,Moderate long burst,p95_backlog,P95 aggregate backlog,ml,shortest-queue,1005,42.000000,33.000000,9.000000
+moderate-long-burst,Moderate long burst,p95_backlog,P95 aggregate backlog,ml,little-law,1001,91.000000,76.350000,14.650000
+moderate-long-burst,Moderate long burst,p95_backlog,P95 aggregate backlog,ml,little-law,1002,24.000000,5.000000,19.000000
+moderate-long-burst,Moderate long burst,p95_backlog,P95 aggregate backlog,ml,little-law,1003,54.000000,9.000000,45.000000
+moderate-long-burst,Moderate long burst,p95_backlog,P95 aggregate backlog,ml,little-law,1004,105.000000,24.000000,81.000000
+moderate-long-burst,Moderate long burst,p95_backlog,P95 aggregate backlog,ml,little-law,1005,42.000000,12.000000,30.000000
+moderate-long-burst,Moderate long burst,mean_queue_imbalance,Mean queue imbalance,ml,shortest-queue,1001,12.478073,6.574347,5.903726
+moderate-long-burst,Moderate long burst,mean_queue_imbalance,Mean queue imbalance,ml,shortest-queue,1002,1.648034,11.003720,-9.355686
+moderate-long-burst,Moderate long burst,mean_queue_imbalance,Mean queue imbalance,ml,shortest-queue,1003,4.347141,5.928631,-1.581490
+moderate-long-burst,Moderate long burst,mean_queue_imbalance,Mean queue imbalance,ml,shortest-queue,1004,8.080552,2.717942,5.362610
+moderate-long-burst,Moderate long burst,mean_queue_imbalance,Mean queue imbalance,ml,shortest-queue,1005,9.342020,1.509968,7.832052
+moderate-long-burst,Moderate long burst,mean_queue_imbalance,Mean queue imbalance,ml,little-law,1001,12.478073,6.616038,5.862035
+moderate-long-burst,Moderate long burst,mean_queue_imbalance,Mean queue imbalance,ml,little-law,1002,1.648034,0.434780,1.213254
+moderate-long-burst,Moderate long burst,mean_queue_imbalance,Mean queue imbalance,ml,little-law,1003,4.347141,0.732691,3.614450
+moderate-long-burst,Moderate long burst,mean_queue_imbalance,Mean queue imbalance,ml,little-law,1004,8.080552,1.333191,6.747361
+moderate-long-burst,Moderate long burst,mean_queue_imbalance,Mean queue imbalance,ml,little-law,1005,9.342020,0.594252,8.747768
+moderate-long-burst,Moderate long burst,p95_queue_imbalance,P95 queue imbalance,ml,shortest-queue,1001,35.355339,24.513035,10.842304
+moderate-long-burst,Moderate long burst,p95_queue_imbalance,P95 queue imbalance,ml,shortest-queue,1002,11.313708,49.497475,-38.183767
+moderate-long-burst,Moderate long burst,p95_queue_imbalance,P95 queue imbalance,ml,shortest-queue,1003,25.455844,32.055507,-6.599663
+moderate-long-burst,Moderate long burst,p95_queue_imbalance,P95 queue imbalance,ml,shortest-queue,1004,32.873495,16.027754,16.845741
+moderate-long-burst,Moderate long burst,p95_queue_imbalance,P95 queue imbalance,ml,shortest-queue,1005,18.384776,11.313708,7.071068
+moderate-long-burst,Moderate long burst,p95_queue_imbalance,P95 queue imbalance,ml,little-law,1001,35.355339,35.284628,0.070711
+moderate-long-burst,Moderate long burst,p95_queue_imbalance,P95 queue imbalance,ml,little-law,1002,11.313708,1.857726,9.455982
+moderate-long-burst,Moderate long burst,p95_queue_imbalance,P95 queue imbalance,ml,little-law,1003,25.455844,4.242641,21.213203
+moderate-long-burst,Moderate long burst,p95_queue_imbalance,P95 queue imbalance,ml,little-law,1004,32.873495,11.313708,21.559787
+moderate-long-burst,Moderate long burst,p95_queue_imbalance,P95 queue imbalance,ml,little-law,1005,18.384776,4.966555,13.418221
+moderate-long-burst,Moderate long burst,throughput_events_per_second,Throughput (events/s),ml,shortest-queue,1001,5.102467,5.061276,0.041191
+moderate-long-burst,Moderate long burst,throughput_events_per_second,Throughput (events/s),ml,shortest-queue,1002,4.405165,4.429663,-0.024498
+moderate-long-burst,Moderate long burst,throughput_events_per_second,Throughput (events/s),ml,shortest-queue,1003,4.365650,4.371381,-0.005731
+moderate-long-burst,Moderate long burst,throughput_events_per_second,Throughput (events/s),ml,shortest-queue,1004,4.744024,4.740398,0.003626
+moderate-long-burst,Moderate long burst,throughput_events_per_second,Throughput (events/s),ml,shortest-queue,1005,4.057111,4.065621,-0.008510
+moderate-long-burst,Moderate long burst,throughput_events_per_second,Throughput (events/s),ml,little-law,1001,5.102467,5.060101,0.042366
+moderate-long-burst,Moderate long burst,throughput_events_per_second,Throughput (events/s),ml,little-law,1002,4.405165,4.408620,-0.003455
+moderate-long-burst,Moderate long burst,throughput_events_per_second,Throughput (events/s),ml,little-law,1003,4.365650,4.364256,0.001394
+moderate-long-burst,Moderate long burst,throughput_events_per_second,Throughput (events/s),ml,little-law,1004,4.744024,4.745179,-0.001155
+moderate-long-burst,Moderate long burst,throughput_events_per_second,Throughput (events/s),ml,little-law,1005,4.057111,4.057452,-0.000341
+moderate-long-burst,Moderate long burst,recovery_time_seconds,Recovery time (s),ml,shortest-queue,1001,35.576000,40.422000,-4.846000
+moderate-long-burst,Moderate long burst,recovery_time_seconds,Recovery time (s),ml,shortest-queue,1002,0.500000,29.788000,-29.288000
+moderate-long-burst,Moderate long burst,recovery_time_seconds,Recovery time (s),ml,shortest-queue,1003,0.429000,35.562000,-35.133000
+moderate-long-burst,Moderate long burst,recovery_time_seconds,Recovery time (s),ml,shortest-queue,1004,27.509000,18.517000,8.992000
+moderate-long-burst,Moderate long burst,recovery_time_seconds,Recovery time (s),ml,shortest-queue,1005,29.415000,21.868000,7.547000
+moderate-long-burst,Moderate long burst,recovery_time_seconds,Recovery time (s),ml,little-law,1001,35.576000,22.512000,13.064000
+moderate-long-burst,Moderate long burst,recovery_time_seconds,Recovery time (s),ml,little-law,1002,0.500000,20.577000,-20.077000
+moderate-long-burst,Moderate long burst,recovery_time_seconds,Recovery time (s),ml,little-law,1003,0.429000,12.342000,-11.913000
+moderate-long-burst,Moderate long burst,recovery_time_seconds,Recovery time (s),ml,little-law,1004,27.509000,4.508000,23.001000
+moderate-long-burst,Moderate long burst,recovery_time_seconds,Recovery time (s),ml,little-law,1005,29.415000,16.563000,12.852000
+moderate-long-burst,Moderate long burst,median_routing_overhead_ms,Median routing overhead (ms),ml,shortest-queue,1001,6.326377,0.143658,6.182718
+moderate-long-burst,Moderate long burst,median_routing_overhead_ms,Median routing overhead (ms),ml,shortest-queue,1002,7.150475,0.190513,6.959963
+moderate-long-burst,Moderate long burst,median_routing_overhead_ms,Median routing overhead (ms),ml,shortest-queue,1003,6.077614,0.153131,5.924482
+moderate-long-burst,Moderate long burst,median_routing_overhead_ms,Median routing overhead (ms),ml,shortest-queue,1004,6.179693,0.146737,6.032957
+moderate-long-burst,Moderate long burst,median_routing_overhead_ms,Median routing overhead (ms),ml,shortest-queue,1005,6.235491,0.162873,6.072618
+moderate-long-burst,Moderate long burst,median_routing_overhead_ms,Median routing overhead (ms),ml,little-law,1001,6.326377,0.160184,6.166193
+moderate-long-burst,Moderate long burst,median_routing_overhead_ms,Median routing overhead (ms),ml,little-law,1002,7.150475,0.155453,6.995022
+moderate-long-burst,Moderate long burst,median_routing_overhead_ms,Median routing overhead (ms),ml,little-law,1003,6.077614,0.149552,5.928062
+moderate-long-burst,Moderate long burst,median_routing_overhead_ms,Median routing overhead (ms),ml,little-law,1004,6.179693,0.149075,6.030618
+moderate-long-burst,Moderate long burst,median_routing_overhead_ms,Median routing overhead (ms),ml,little-law,1005,6.235491,0.153843,6.081647

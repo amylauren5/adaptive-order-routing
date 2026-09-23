@@ -36,37 +36,41 @@ else
   echo "PostgreSQL container is not running; database tables were not reset."
 fi
 
-echo "Removing ganache container..."
+echo "Removing experiment containers..."
 
-docker stop ganache 2>/dev/null || true
-docker rm ganache 2>/dev/null || true
+docker rm -f producer-app 2>/dev/null || true
+docker rm -f consumer-app 2>/dev/null || true
+docker rm -f axon-server 2>/dev/null || true
+docker rm -f rabbit-broker 2>/dev/null || true
+docker rm -f postgres-db 2>/dev/null || true
+docker rm -f ganache 2>/dev/null || true
 
 echo "Inspecting network '$NETWORK_NAME' for attached containers..."
 
-if ! docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
-  echo "Network '$NETWORK_NAME' does not exist."
-  exit 0
-fi
+if docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
 
-CONTAINERS=$(
-  docker network inspect \
-    "$NETWORK_NAME" \
-    -f '{{range .Containers}}{{.Name}} {{end}}'
-)
+  CONTAINERS=$(
+    docker network inspect \
+      "$NETWORK_NAME" \
+      -f '{{range .Containers}}{{.Name}} {{end}}'
+  )
 
-if [ -z "$CONTAINERS" ]; then
-  echo "No containers attached to '$NETWORK_NAME'."
+  if [ -z "$CONTAINERS" ]; then
+    echo "No containers attached to '$NETWORK_NAME'."
+  else
+    echo "Removing attached containers: $CONTAINERS"
+
+    for CONTAINER in $CONTAINERS; do
+      echo "Removing container: $CONTAINER"
+      docker rm -f "$CONTAINER" 2>/dev/null || true
+    done
+  fi
+
+  echo "Deleting network: $NETWORK_NAME"
+  docker network rm "$NETWORK_NAME" 2>/dev/null || true
+
 else
-  echo "Removing attached containers: $CONTAINERS"
-
-  for CONTAINER in $CONTAINERS; do
-    echo "Removing container: $CONTAINER"
-    docker rm -f -v "$CONTAINER" 2>/dev/null || true
-  done
+  echo "Network '$NETWORK_NAME' does not exist."
 fi
-
-echo "Deleting network: $NETWORK_NAME"
-
-docker network rm "$NETWORK_NAME" 2>/dev/null || true
 
 echo "Teardown completed successfully."

@@ -1,6 +1,7 @@
 package ict.um.orders.services;
 
 import ict.um.orders.web3j.OrderLifecycleContract;
+import okhttp3.OkHttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -8,6 +9,8 @@ import org.web3j.crypto.Credentials;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.http.HttpService;
 import org.web3j.tx.gas.DefaultGasProvider;
+
+import java.time.Duration;
 
 @Service
 public class BlockchainWriteService {
@@ -32,7 +35,31 @@ public class BlockchainWriteService {
             throw new IllegalArgumentException("Contract address is not configured.");
         }
 
-        Web3j web3j = Web3j.build(new HttpService(web3Provider));
+        OkHttpClient httpClient =
+                new OkHttpClient.Builder()
+                        .connectTimeout(
+                                Duration.ofSeconds(5)
+                        )
+                        .readTimeout(
+                                Duration.ofSeconds(30)
+                        )
+                        .writeTimeout(
+                                Duration.ofSeconds(30)
+                        )
+                        .callTimeout(
+                                Duration.ofSeconds(45)
+                        )
+                        .build();
+
+        HttpService httpService =
+                new HttpService(
+                        web3Provider,
+                        httpClient
+                );
+
+        Web3j web3j =
+                Web3j.build(httpService);
+
         Credentials credentials = Credentials.create(privateKey);
 
         this.orderLifecycleContract = OrderLifecycleContract.load(
